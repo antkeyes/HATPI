@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Contents of {{ folder_name }}</title>
+    <link rel="stylesheet" href="/hatpi/static/styles.css">
+    <link rel="icon" type="image/png" href="/hatpi/images/favicon.png">
+</head>
+<body>
+    <!-- Background animation elements -->
+    <div class="background-container">
+        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1231630/moon2.png" alt="">
+        <div class="stars"></div>
+        <div class="twinkling"></div>
+    </div>
+    <h1 class="page-title">{{ folder_name }}</h1>
+    <div class="pills-container">
+        <div class="pill-container-unique">
+            <button class="pill-button-unique active" onclick="showTab('images')">Images</button>
+            <button class="pill-button-unique" onclick="showTab('html-files')">Plots</button>
+        </div>
+    </div>
+    <div class="container">
+        <div id="images" class="tab-content active">
+            <div class="images">
+                {% for image, creation_date in images %}
+                    {% if image.endswith('.jpg') %}
+                        <div class="file-item">
+                            <div class="file-name">
+                                <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ image }}'); return false;">{{ image }}</a>
+                            </div>
+                            <div class="file-date">{{ creation_date }}</div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        <div id="html-files" class="tab-content">
+            <div class="html-files">
+                {% for html_file, creation_date in html_files %}
+                    {% if html_file.endswith('.html') %}
+                        <div class="file-item">
+                            <div class="file-name">
+                                <a href="#" onclick="loadPlot('/hatpi/{{ folder_name }}/{{ html_file }}'); return false;">{{ html_file }}</a>
+                            </div>
+                            <div class="file-date">{{ creation_date }}</div>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <a href="https://hatops.astro.princeton.edu/hatpi" class="back-to-home">Home</a>
+    <script src="/hatpi/static/scripts.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFolder('{{ folder_name }}');
+        });
+
+        function loadPlot(filePath) {
+            const script = document.createElement('script');
+            script.src = "https://cdn.bokeh.org/bokeh/release/bokeh-3.1.0.min.js";
+            script.onload = () => {
+                Bokeh.set_log_level("warning");
+                openGallery(filePath);
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+</body>
+</html>
+
+
