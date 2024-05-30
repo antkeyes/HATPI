@@ -78,16 +78,58 @@ function showTab(tabId) {
     event.target.classList.add('active');
 }
 
-function openGallery(filePath) {
-    // Get the overlay element or create a new one if it doesn't exist
-    let overlay = document.getElementById('galleryOverlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'galleryOverlay';
-        overlay.className = 'gallery-overlay';
-        document.body.appendChild(overlay);
+// Global variable to track the current gallery state
+let currentGalleryIndex = -1;
+let currentGalleryFiles = [];
+let galleryOverlay = null;
+
+// Function to navigate the gallery
+function navigateGallery(direction) {
+    currentGalleryIndex = (currentGalleryIndex + direction + currentGalleryFiles.length) % currentGalleryFiles.length;
+    let nextFile = null;
+
+    // Determine the next file to display based on the onclick attribute
+    const onclickString = currentGalleryFiles[currentGalleryIndex].getAttribute('onclick');
+    const openGalleryMatch = onclickString.match(/openGallery\('([^']+)'\)/);
+    const loadPlotMatch = onclickString.match(/loadPlot\('([^']+)'\)/);
+
+    if (openGalleryMatch) {
+        nextFile = openGalleryMatch[1];
+    } else if (loadPlotMatch) {
+        nextFile = loadPlotMatch[1];
+    }
+
+    if (nextFile) {
+        openGallery(nextFile);
     } else {
-        overlay.innerHTML = '';
+        console.error('No matching file path found in onclick attribute:', onclickString);
+    }
+}
+
+// Event listener for keyboard navigation
+const handleKeyDown = (event) => {
+    if (currentGalleryIndex === -1 || !currentGalleryFiles.length) return;
+
+    if (event.key === 'ArrowLeft') {
+        navigateGallery(-1);
+    } else if (event.key === 'ArrowRight') {
+        navigateGallery(1);
+    }
+};
+
+// Attach the event listener to the document once
+document.addEventListener('keydown', handleKeyDown);
+
+function openGallery(filePath) {
+    if (!galleryOverlay) {
+        // Create the overlay element if it doesn't exist
+        galleryOverlay = document.createElement('div');
+        galleryOverlay.id = 'galleryOverlay';
+        galleryOverlay.className = 'gallery-overlay';
+        document.body.appendChild(galleryOverlay);
+    } else {
+        // Clear existing content in the overlay
+        galleryOverlay.innerHTML = '';
     }
 
     // Extract the file name from the file path and create a title element
@@ -98,10 +140,10 @@ function openGallery(filePath) {
 
     // Determine the file type and find the current file index in the list
     const fileType = filePath.split('.').pop();
-    const files = document.querySelectorAll(fileType === 'html' ? '.html-files a' : '.images a');
-    let currentIndex = Array.from(files).findIndex(file => file.onclick.toString().includes(filePath));
+    currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.html-files a' : '.images a');
+    currentGalleryIndex = Array.from(currentGalleryFiles).findIndex(file => file.onclick.toString().includes(filePath));
 
-    if (currentIndex === -1) {
+    if (currentGalleryIndex === -1) {
         console.error('File not found in list:', filePath);
         return;
     }
@@ -119,38 +161,26 @@ function openGallery(filePath) {
         const arrow = document.createElement('a');
         arrow.innerText = direction === -1 ? '❮' : '❯';
         arrow.className = `arrow ${direction === -1 ? 'left-arrow' : 'right-arrow'}`;
-        arrow.onclick = () => {
-            currentIndex = (currentIndex + direction + files.length) % files.length;
-            let nextFile = null;
-
-            // Determine the next file to display based on the onclick attribute
-            const onclickString = files[currentIndex].getAttribute('onclick');
-            const openGalleryMatch = onclickString.match(/openGallery\('([^']+)'\)/);
-            const loadPlotMatch = onclickString.match(/loadPlot\('([^']+)'\)/);
-
-            if (openGalleryMatch) {
-                nextFile = openGalleryMatch[1];
-            } else if (loadPlotMatch) {
-                nextFile = loadPlotMatch[1];
-            }
-
-            if (nextFile) {
-                openGallery(nextFile);
-            } else {
-                console.error('No matching file path found in onclick attribute:', onclickString);
-            }
-        };
+        arrow.onclick = () => navigateGallery(direction);
         return arrow;
     };
 
     const leftArrow = createArrow(-1); // Create left arrow
     const rightArrow = createArrow(1); // Create right arrow
 
+    // Function to remove the overlay and reset state
+    const closeGallery = () => {
+        document.body.removeChild(galleryOverlay);
+        galleryOverlay = null; // Reset the overlay
+        currentGalleryIndex = -1; // Reset the gallery state
+        currentGalleryFiles = []; // Clear the files list
+    };
+
     // Create a close button to remove the overlay
     const closeButton = document.createElement('button');
     closeButton.innerText = 'X';
     closeButton.className = "closeButton";
-    closeButton.onclick = () => document.body.removeChild(overlay);
+    closeButton.onclick = closeGallery;
 
     // Create the comment container and its elements
     const commentContainer = document.createElement('div');
@@ -175,12 +205,12 @@ function openGallery(filePath) {
     commentContainer.appendChild(submitButton);
 
     // Append elements to the overlay
-    overlay.appendChild(title);
-    overlay.appendChild(leftArrow);
-    overlay.appendChild(content);
-    overlay.appendChild(commentContainer);
-    overlay.appendChild(rightArrow);
-    overlay.appendChild(closeButton);
+    galleryOverlay.appendChild(title);
+    galleryOverlay.appendChild(leftArrow);
+    galleryOverlay.appendChild(content);
+    galleryOverlay.appendChild(commentContainer);
+    galleryOverlay.appendChild(rightArrow);
+    galleryOverlay.appendChild(closeButton);
 }
 
 function loadPlot(filePath) {
