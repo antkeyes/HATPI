@@ -88,11 +88,13 @@ def get_cached_files(folder_path):
         return cached_result
 
     files = os.listdir(folder_path)
+    files.sort()  # Sort files to maintain the order they appear in the directory
     images = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.jpg')]
     html_files = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.html')]
     cache.put(folder_path, (images, html_files))  # Cache the result
     logging.info("get_cached_files - Directory reading and caching time: {} seconds".format(time.time() - start_time))  # Log processing time
     return images, html_files
+
 
 @app.route('/<folder_name>/')
 def folder(folder_name):
