@@ -87,33 +87,45 @@
             event.target.classList.add('active');
         }
 
-        // JavaScript to create the IHU grid
-        document.addEventListener('DOMContentLoaded', function() {
-            const rowColors = ["#D5A6BE", "#B4A7D6", "#CEE1F3", "#6FA7DC", "#77A5AF", "#93C47D", "#F9E499", "#F5B26B", "#E06566", "#CC4125"];
-            const rowColumns = [3, 7, 8, 9, 9, 9, 8, 6, 4, 1];
-            const gridContainer = document.getElementById('grid-container-ihu');
+    // JavaScript to create the IHU grid
+    document.addEventListener('DOMContentLoaded', function() {
+        const rowColors = ["#D5A6BE", "#B4A7D6", "#CEE1F3", "#6FA7DC", "#77A5AF", "#93C47D", "#F9E499", "#F5B26B", "#E06566", "#CC4125"];
+        const rowColumns = [3, 7, 8, 9, 9, 9, 8, 6, 4, 1];
+        const gridContainer = document.getElementById('grid-container-ihu');
 
-            let textIndex = 64;  // Starting text index
-            for (let i = 0; i < rowColumns.length; i++) {
-                const row = document.createElement('div');
-                row.className = 'grid-row-ihu';
-                row.style.display = 'grid';
-                row.style.gridTemplateColumns = `repeat(${rowColumns[i]}, 45px)`;
-                row.style.justifyContent = 'center';
+        let textIndex = 64;  // Starting text index
+        for (let i = 0; i < rowColumns.length; i++) {
+            const row = document.createElement('div');
+            row.className = 'grid-row-ihu';
+            row.style.display = 'grid';
+            row.style.gridTemplateColumns = `repeat(${rowColumns[i]}, 45px)`;
+            row.style.justifyContent = 'center';
 
-                const cells = [];
-                for (let j = 0; j < rowColumns[i]; j++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'grid-item-ihu';
-                    cell.style.backgroundColor = rowColors[i];
-                    cell.textContent = textIndex;
-                    textIndex--;
-                    cells.unshift(cell); // Add cell to the beginning of the array
-                }
-                cells.forEach(cell => row.appendChild(cell)); // Append cells to the row
-                gridContainer.appendChild(row); // Append row to the grid container
+            const cells = [];
+            for (let j = 0; j < rowColumns[i]; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-item-ihu';
+                cell.style.backgroundColor = rowColors[i];
+
+                const button = document.createElement('button');
+                button.textContent = textIndex;
+
+                // Use an IIFE to create a closure that captures the current value of textIndex
+                (function(index) {
+                    button.addEventListener('click', function() {
+                        const cellNumber = index.toString().padStart(2, '0');
+                        window.location.href = '/hatpi/ihu/ihu-' + cellNumber;
+                    });
+                })(textIndex);
+
+                cell.appendChild(button);
+                textIndex--;
+                cells.unshift(cell); // Add cell to the beginning of the array
             }
-        });
+            cells.forEach(cell => row.appendChild(cell)); // Append cells to the row
+            gridContainer.appendChild(row); // Append row to the grid container
+        }
+    });
     </script>
 </body>
 </html>
