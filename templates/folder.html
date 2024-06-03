@@ -18,21 +18,33 @@
         <div class="pill-container-unique">
             <button class="pill-button-unique active" onclick="showTab('images')">Images</button>
             <button class="pill-button-unique" onclick="showTab('html-files')">Plots</button>
+            <button class="pill-button-unique" onclick="showTab('movies')">Movies</button>
         </div>
     </div>
     <div class="container">
         <div id="images" class="tab-content active">
-            <div class="images">
-                {% for image, creation_date in images %}
-                    {% if image.endswith('.jpg') %}
-                        <div class="file-item">
-                            <div class="file-name">
-                                <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ image }}'); return false;">{{ image }}</a>
-                            </div>
-                            <div class="file-date">{{ creation_date }}</div>
-                        </div>
-                    {% endif %}
-                {% endfor %}
+            <div class="filter-container">
+                <div class="filter-buttons">
+                    <button class="filter-button" onclick="filterImages('all')">All</button>
+                    <button class="filter-button" onclick="filterImages('bias')">Bias</button>
+                    <button class="filter-button" onclick="filterImages('dark')">Dark</button>
+                    <button class="filter-button" onclick="filterImages('-ss')">Flat ss</button>
+                    <button class="filter-button" onclick="filterImages('-ls')">Flat ls</button>
+                </div>
+                <div class="images-list">
+                    <div class="images">
+                        {% for image, creation_date in images %}
+                            {% if image.endswith('.jpg') %}
+                                <div class="file-item" data-filename="{{ image }}">
+                                    <div class="file-name">
+                                        <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ image }}'); return false;">{{ image | format_filename }}</a>
+                                    </div>
+                                    <div class="file-date">{{ creation_date }}</div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
         <div id="html-files" class="tab-content">
@@ -49,6 +61,11 @@
                 {% endfor %}
             </div>
         </div>
+        <div id="movies" class="tab-content">
+            <div class="movies">
+                <p>Coming soon!</p>
+            </div>
+        </div>
     </div>
     <a href="https://hatops.astro.princeton.edu/hatpi" class="back-to-home">Home</a>
     <script src="/hatpi/static/scripts.js"></script>
@@ -58,9 +75,9 @@
         });
 
         function loadPlot(filePath) {
-            const script = document.createElement('script');
+            var script = document.createElement('script');
             script.src = "https://cdn.bokeh.org/bokeh/release/bokeh-3.1.0.min.js";
-            script.onload = () => {
+            script.onload = function() {
                 Bokeh.set_log_level("warning");
                 openGallery(filePath);
             };
@@ -69,5 +86,3 @@
     </script>
 </body>
 </html>
-
-

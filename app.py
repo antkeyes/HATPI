@@ -5,10 +5,17 @@ import json
 from collections import OrderedDict
 import logging
 import time
+import re
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 BASE_DIR = '/nfs/hatops/ar0/hatpi-website'
-EXCLUDE_FOLDERS = set(['static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'ihu', 'ihu-01', 'ihu-02'])
+EXCLUDE_FOLDERS = set(['static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies'])
+
+# Dynamically add all 'ihu' folders to the EXCLUDE_FOLDERS set
+for folder in os.listdir(BASE_DIR):
+    if folder.startswith('ihu'):
+        EXCLUDE_FOLDERS.add(folder)
+
 COMMENTS_FILE = '/nfs/hatops/ar0/hatpi-website/comments.json'
 
 logging.basicConfig(level=logging.DEBUG)
@@ -55,7 +62,36 @@ def format_folder_name(value):
         return "%s-%s-%s" % (parts[1][:4], parts[1][4:6], parts[1][6:])
     return value
 
+def format_filename(value):
+    # Split the filename into parts
+    parts = value.split('-')
+
+    # Extract date part and reformat it
+    date_part = parts[3][:4] + '-' + parts[3][4:6] + '-' + parts[3][6:8]
+
+    # Extract type part (bias, dark, flat ss, flat ls)
+    if 'bias' in parts[0]:
+        type_part = 'bias'
+    elif 'dark' in parts[0]:
+        type_part = 'dark'
+    elif 'flat' in parts[0] and 'ss' in parts[-1]:
+        type_part = 'flat ss'
+    elif 'flat' in parts[0] and 'ls' in parts[-1]:
+        type_part = 'flat ls'
+    else:
+        type_part = 'unknown'
+
+    # Extract IHU part and number using regular expressions
+    ihu_match = re.search(r'ihu-(\d+)', value)
+    ihu_part = ihu_match.group(1) if ihu_match else 'IHU-'
+
+    # Format the final string
+    formatted_string = "{} | {} | IHU-{}".format(date_part, type_part, ihu_part)
+
+    return formatted_string
+
 app.jinja_env.filters['format_folder'] = format_folder_name
+app.jinja_env.filters['format_filename'] = format_filename
 
 @app.route('/')
 def home():
