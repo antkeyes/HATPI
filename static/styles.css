@@ -235,47 +235,128 @@ a:hover {
     background-color: rgba(0, 0, 0, 0.8);
     z-index: 1000;
     display: grid;
-    grid-template-columns: 1fr repeat(4, 2fr) repeat(3, 1fr);
+    grid-template-rows: 1fr 8fr;
+    /* padding: 20px; */
+}
+
+.top-row {
+    display: grid;
+    grid-template-columns: 1fr 3fr 1fr;
     align-items: center;
-    justify-items: center;
-    padding: 20px;
+}
+
+.bottom-row {
+    display: grid;
+    grid-template-columns: 5fr 1fr;
+    align-items: center;
+    overflow: hidden;
+}
+
+.left-empty {
+    /* Intentionally left empty */
+}
+
+.middle-center {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    width: 100%;
+}
+
+.right-close {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.left-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: auto;
+    width: 100%;
+    height: 100%;
+}
+
+.right-comments {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: auto;
 }
 
 .gallery-title {
     color: #8E97A1;
     font-size: 24px;
-    grid-column: 2 / span 4;
-    position: absolute;
-    top: 20px;
+    margin: 0 10px;
     height: 50px;
     line-height: 50px;
     overflow: hidden;
     white-space: nowrap;
+    text-align: center;
+    flex-grow: 1;
+}
+
+.arrow {
+    font-size: 32px;
+    color: white;
+    transition: color 0.3s;
+    cursor: pointer;
+    margin: 0 10px;
+}
+
+.arrow:hover {
+    color: #87689F;
+}
+
+.left-arrow {
+    position: absolute;
+    left: 0;
+    font-size: 32px;
+    color: white;
+    transition: color 0.3s;
+    cursor: pointer;
+    margin: 0 10px;
+}
+
+.right-arrow {
+    position: absolute;
+    right: 0;
+    font-size: 32px;
+    color: white;
+    transition: color 0.3s;
+    cursor: pointer;
+    margin: 0 10px;
+}
+
+.closeButton {
+    font-size: 24px;
+    color: white;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.closeButton:hover {
+    color: #87689F;
 }
 
 .gallery-content {
-    max-width: 85%;
-    max-height: 80%;
-    width: auto;
-    height: auto;
-    grid-column: 2 / span 4;
-    justify-self: center;
-    margin-top: 10px;
-    margin-bottom: 50px;
+    max-width: 95%;
+    max-height: 95%;
+    object-fit: contain;
 }
 
-#galleryOverlay .overlay-iframe {
-    grid-column: 2 / span 4;
-    width: 85% !important;
-    height: 85% !important;
-    margin-top: 50px;
-    margin-bottom: 50px;
+.overlay-iframe {
+    width: 90% !important;
+    height: 90% !important;
     background-color: white;
 }
 
-#galleryOverlay .comment-container {
-    grid-column: 6 / span 2;
-    width: 100%;
+.comment-container {
+    width: 80%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -285,6 +366,7 @@ a:hover {
     border: 1px solid #8E97A1;
     border-radius: 8px;
     overflow: hidden;
+    margin-right: 10px;
 }
 
 .commentBox {
@@ -310,43 +392,6 @@ a:hover {
 
 .submit-button:hover {
     background-color: #a787b3;
-}
-
-.closeButton {
-    grid-column: 8;
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    font-size: 24px;
-    color: white;
-    background: none;
-    border: none;
-    cursor: pointer;
-    transition: color 0.3s;
-}
-
-.closeButton:hover {
-    color: #87689F;
-}
-
-.left-arrow {
-    grid-column: 1;
-    cursor: pointer;
-    font-size: 32px;
-    color: white;
-    transition: color 0.3s;
-}
-
-.right-arrow {
-    grid-column: 8;
-    cursor: pointer;
-    font-size: 32px;
-    color: white;
-    transition: color 0.3s;
-}
-
-.arrow:hover {
-    color: #87689F;
 }
 
 /* Styles for folder list on the home page */
@@ -542,7 +587,6 @@ a.back-to-home:hover {
     text-align: left;
 }
 
-
 #html-filters .filter-button {
     width: 150px; /* Wider width for HTML filters */
     height: 45px;
@@ -558,6 +602,13 @@ a.back-to-home:hover {
 }
 
 .images-list {
+    background-color: #1C1F26;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+/* Add the plot-list container styles */
+.plot-list {
     background-color: #1C1F26;
     border-radius: 8px;
     padding: 10px;

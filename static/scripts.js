@@ -167,12 +167,14 @@ function openGallery(filePath) {
     // Create the appropriate content element based on the file type
     const content = document.createElement(fileType === 'html' ? 'iframe' : 'img');
     content.src = filePath;
-    content.className = 'gallery-content';
-    if (fileType === 'html') {
-        content.classList.add('overlay-iframe');
-    }
+    content.className = fileType === 'html' ? 'overlay-iframe' : 'gallery-content';
+    content.onerror = () => {
+        console.error('Error loading file:', filePath);
+        content.alt = 'Failed to load image';
+        content.src = 'path_to_placeholder_image.jpg'; // Use a placeholder image for failed loads
+    };
 
-    // Function to create navigation arrows for the gallery
+    // Create navigation arrows
     const createArrow = (direction) => {
         const arrow = document.createElement('a');
         arrow.innerText = direction === -1 ? '❮' : '❯';
@@ -181,22 +183,19 @@ function openGallery(filePath) {
         return arrow;
     };
 
-    const leftArrow = createArrow(-1); // Create left arrow
-    const rightArrow = createArrow(1); // Create right arrow
-
-    // Function to remove the overlay and reset state
-    const closeGallery = () => {
-        document.body.removeChild(galleryOverlay);
-        galleryOverlay = null; // Reset the overlay
-        currentGalleryIndex = -1; // Reset the gallery state
-        currentGalleryFiles = []; // Clear the files list
-    };
+    const leftArrow = createArrow(-1);
+    const rightArrow = createArrow(1);
 
     // Create a close button to remove the overlay
     const closeButton = document.createElement('button');
     closeButton.innerText = 'X';
     closeButton.className = "closeButton";
-    closeButton.onclick = closeGallery;
+    closeButton.onclick = () => {
+        document.body.removeChild(galleryOverlay);
+        galleryOverlay = null; // Reset the overlay
+        currentGalleryIndex = -1; // Reset the gallery state
+        currentGalleryFiles = []; // Clear the files list
+    };
 
     // Create the comment container and its elements
     const commentContainer = document.createElement('div');
@@ -220,14 +219,46 @@ function openGallery(filePath) {
     commentContainer.appendChild(commentBox);
     commentContainer.appendChild(submitButton);
 
-    // Append elements to the overlay
-    galleryOverlay.appendChild(title);
-    galleryOverlay.appendChild(leftArrow);
-    galleryOverlay.appendChild(content);
-    galleryOverlay.appendChild(commentContainer);
-    galleryOverlay.appendChild(rightArrow);
-    galleryOverlay.appendChild(closeButton);
+    // Create the container structure
+    const topRow = document.createElement('div');
+    topRow.className = 'top-row';
+    const bottomRow = document.createElement('div');
+    bottomRow.className = 'bottom-row';
+
+    const leftEmpty = document.createElement('div');
+    leftEmpty.className = 'left-empty';
+    const middleCenter = document.createElement('div');
+    middleCenter.className = 'middle-center';
+    const rightClose = document.createElement('div');
+    rightClose.className = 'right-close';
+
+    const leftContent = document.createElement('div');
+    leftContent.className = 'left-content';
+    const rightComments = document.createElement('div');
+    rightComments.className = 'right-comments';
+
+    // Append elements to the structure
+    middleCenter.appendChild(leftArrow);
+    middleCenter.appendChild(title);
+    middleCenter.appendChild(rightArrow);
+    rightClose.appendChild(closeButton);
+
+    leftContent.appendChild(content);
+    rightComments.appendChild(commentContainer);
+
+    topRow.appendChild(leftEmpty);
+    topRow.appendChild(middleCenter);
+    topRow.appendChild(rightClose);
+
+    bottomRow.appendChild(leftContent);
+    bottomRow.appendChild(rightComments);
+
+    galleryOverlay.appendChild(topRow);
+    galleryOverlay.appendChild(bottomRow);
 }
+
+
+
 
 function loadPlot(filePath) {
     // Load the Bokeh library and then open the gallery with the specified file
