@@ -63,35 +63,59 @@ def format_folder_name(value):
     return value
 
 def format_filename(value):
-    # Split the filename into parts
-    parts = value.split('-')
+    if value.endswith('.jpg'):
+        parts = value.split('-')
+        date_part = parts[3][:4] + '-' + parts[3][4:6] + '-' + parts[3][6:8]
 
-    # Extract date part and reformat it
-    date_part = parts[3][:4] + '-' + parts[3][4:6] + '-' + parts[3][6:8]
+        if 'bias' in parts[0]:
+            type_part = 'bias'
+        elif 'dark' in parts[0]:
+            type_part = 'dark'
+        elif 'flat' in parts[0] and 'ss' in parts[-1]:
+            type_part = 'flat ss'
+        elif 'flat' in parts[0] and 'ls' in parts[-1]:
+            type_part = 'flat ls'
+        else:
+            type_part = 'unknown'
 
-    # Extract type part (bias, dark, flat ss, flat ls)
-    if 'bias' in parts[0]:
-        type_part = 'bias'
-    elif 'dark' in parts[0]:
-        type_part = 'dark'
-    elif 'flat' in parts[0] and 'ss' in parts[-1]:
-        type_part = 'flat ss'
-    elif 'flat' in parts[0] and 'ls' in parts[-1]:
-        type_part = 'flat ls'
+        ihu_match = re.search(r'ihu-(\d+)', value)
+        ihu_part = ihu_match.group(1) if ihu_match else 'IHU-'
+
+    elif value.endswith('.html'):
+        parts = value.split('_')
+        date_part = parts[0][2:6] + '-' + parts[0][6:8] + '-' + parts[0][8:10]
+
+        if 'aper_phot_quality' in value:
+            type_part = 'aper phot quality'
+        elif 'astrometry_sip_quality' in value:
+            type_part = 'astrometry sip quality'
+        elif 'astrometry_wcs_quality' in value:
+            type_part = 'astrometry wcs quality'
+        elif 'calframe_quality' in value:
+            type_part = 'calframe quality'
+        elif 'ihu_status' in value:
+            type_part = 'IHU status'
+        elif 'psf_sources_model' in value:
+            type_part = 'PSF sources model'
+        elif 'subframe_quality' in value:
+            type_part = 'subframe quality'
+        else:
+            type_part = 'unknown'
+
+        ihu_match = re.search(r'_(\d+)_', value)
+        ihu_part = ihu_match.group(1) if ihu_match else 'IHU-'
+
     else:
-        type_part = 'unknown'
+        return value
 
-    # Extract IHU part and number using regular expressions
-    ihu_match = re.search(r'ihu-(\d+)', value)
-    ihu_part = ihu_match.group(1) if ihu_match else 'IHU-'
-
-    # Format the final string
     formatted_string = "{} | {} | IHU-{}".format(date_part, type_part, ihu_part)
-
     return formatted_string
+
+
 
 app.jinja_env.filters['format_folder'] = format_folder_name
 app.jinja_env.filters['format_filename'] = format_filename
+
 
 @app.route('/')
 def home():

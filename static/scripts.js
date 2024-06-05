@@ -16,6 +16,9 @@ function loadFolder(folderName) {
                 const htmlFiles = data.html_files;
                 // Display the contents of the folder
                 displayFolderContents(images, htmlFiles, folderName);
+                // Set "All" filter as active by default
+                filterImages('all');
+                filterHtmlFiles('all');
             } catch (error) {
                 // Log any errors that occur during JSON parsing
                 console.error('Error parsing JSON:', error);
@@ -26,8 +29,8 @@ function loadFolder(folderName) {
 }
 
 function displayFolderContents(images, htmlFiles, folderName) {
-    const imagesContainer = document.getElementById('images');
-    const htmlFilesContainer = document.getElementById('html-files');
+    const imagesContainer = document.querySelector('.images');
+    const htmlFilesContainer = document.querySelector('.html-files');
 
     // Clear existing content in the containers
     imagesContainer.innerHTML = '';
@@ -37,6 +40,7 @@ function displayFolderContents(images, htmlFiles, folderName) {
     images.forEach(image => {
         const div = document.createElement('div');
         div.className = 'file-item';
+        div.setAttribute('data-filename', image[0]);
         div.innerHTML = `
             <div class="file-name">
                 <a href="#" onclick="openGallery('/hatpi/${folderName}/${image[0]}'); return false;">${image[0]}</a>
@@ -50,6 +54,7 @@ function displayFolderContents(images, htmlFiles, folderName) {
     htmlFiles.forEach(htmlFile => {
         const div = document.createElement('div');
         div.className = 'file-item';
+        div.setAttribute('data-filename', htmlFile[0]);
         div.innerHTML = `
             <div class="file-name">
                 <a href="#" onclick="loadPlot('/hatpi/${folderName}/${htmlFile[0]}'); return false;">${htmlFile[0]}</a>
@@ -76,6 +81,15 @@ function showTab(tabId) {
     // Activate the selected tab and its corresponding button
     document.getElementById(tabId).classList.add('active');
     event.target.classList.add('active');
+
+    // Show or hide filter buttons based on the selected tab
+    if (tabId === 'images') {
+        document.getElementById('image-filters').classList.remove('hidden');
+        document.getElementById('html-filters').classList.add('hidden');
+    } else if (tabId === 'html-files') {
+        document.getElementById('html-filters').classList.remove('hidden');
+        document.getElementById('image-filters').classList.add('hidden');
+    }
 }
 
 // Global variable to track the current gallery state
@@ -140,8 +154,9 @@ function openGallery(filePath) {
 
     // Determine the file type and find the current file index in the list
     const fileType = filePath.split('.').pop();
-    currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.html-files a' : '.images a');
-    currentGalleryIndex = Array.from(currentGalleryFiles).findIndex(file => file.onclick.toString().includes(filePath));
+    currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.html-files .file-item' : '.images .file-item');
+    currentGalleryFiles = Array.from(currentGalleryFiles).filter(item => item.style.display !== 'none').map(item => item.querySelector('a'));
+    currentGalleryIndex = currentGalleryFiles.findIndex(file => file.getAttribute('onclick').includes(filePath));
 
     if (currentGalleryIndex === -1) {
         console.error('File not found in list:', filePath);
@@ -291,3 +306,59 @@ function loadComments() {
 document.addEventListener('DOMContentLoaded', () => {
     loadComments();
 });
+
+function filterImages(filter) {
+    // Get all filter buttons and remove the 'active' class from them
+    const filterButtons = document.querySelectorAll('#image-filters .filter-button');
+    filterButtons.forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Add the 'active' class to the clicked button or the default "All" button
+    const activeButton = Array.from(filterButtons).find(button => {
+        const buttonText = button.textContent.trim().toLowerCase().replace(' ', '-');
+        return buttonText === filter;
+    });
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
+
+    // Filter the image items based on the selected filter
+    const imageItems = document.querySelectorAll('.images .file-item');
+    imageItems.forEach(item => {
+        const filename = item.getAttribute('data-filename').toLowerCase();
+        if (filter === 'all' || filename.includes(filter)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function filterHtmlFiles(filter) {
+    // Get all filter buttons and remove the 'active' class from them
+    const filterButtons = document.querySelectorAll('#html-filters .filter-button');
+    filterButtons.forEach(button => {
+        button.classList.remove('active');
+    });
+
+    // Add the 'active' class to the clicked button or the default "All" button
+    const activeButton = Array.from(filterButtons).find(button => {
+        const buttonText = button.textContent.trim().toLowerCase().replace(' ', '_');
+        return buttonText === filter;
+    });
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
+
+    // Filter the html file items based on the selected filter
+    const htmlFileItems = document.querySelectorAll('.html-files .file-item');
+    htmlFileItems.forEach(item => {
+        const filename = item.getAttribute('data-filename').toLowerCase();
+        if (filter === 'all' || filename.includes(filter)) {
+            item.style.display = 'flex';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}

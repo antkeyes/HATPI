@@ -21,16 +21,28 @@
             <button class="pill-button-unique" onclick="showTab('movies')">Movies</button>
         </div>
     </div>
-    <div class="container">
-        <div id="images" class="tab-content active">
-            <div class="filter-container">
-                <div class="filter-buttons">
-                    <button class="filter-button" onclick="filterImages('all')">All</button>
-                    <button class="filter-button" onclick="filterImages('bias')">Bias</button>
-                    <button class="filter-button" onclick="filterImages('dark')">Dark</button>
-                    <button class="filter-button" onclick="filterImages('-ss')">Flat ss</button>
-                    <button class="filter-button" onclick="filterImages('-ls')">Flat ls</button>
-                </div>
+    <div class="folder-content-container">
+        <div class="filter-buttons-container">
+            <div class="filter-buttons" id="image-filters">
+                <button class="filter-button active" onclick="filterImages('all')">All</button>
+                <button class="filter-button" onclick="filterImages('bias')">Bias</button>
+                <button class="filter-button" onclick="filterImages('dark')">Dark</button>
+                <button class="filter-button" onclick="filterImages('-ss')">Flat ss</button>
+                <button class="filter-button" onclick="filterImages('-ls')">Flat ls</button>
+            </div>
+            <div class="filter-buttons hidden" id="html-filters">
+                <button class="filter-button active" onclick="filterHtmlFiles('all')">All</button>
+                <button class="filter-button" onclick="filterHtmlFiles('aper_phot_quality')">Aper Phot Quality</button>
+                <button class="filter-button" onclick="filterHtmlFiles('astrometry_sip_quality')">Astrometry SIP Quality</button>
+                <button class="filter-button" onclick="filterHtmlFiles('astrometry_wcs_quality')">Astrometry WCS Quality</button>
+                <button class="filter-button" onclick="filterHtmlFiles('calframe_quality')">Calframe Quality</button>
+                <button class="filter-button" onclick="filterHtmlFiles('ihu_status')">IHU Status</button>
+                <button class="filter-button" onclick="filterHtmlFiles('psf_sources_model')">PSF Sources Models</button>
+                <button class="filter-button" onclick="filterHtmlFiles('subframe_quality')">Subframe Quality</button>
+            </div>
+        </div>
+        <div class="images-list-container">
+            <div id="images" class="tab-content active">
                 <div class="images-list">
                     <div class="images">
                         {% for image, creation_date in images %}
@@ -46,24 +58,24 @@
                     </div>
                 </div>
             </div>
-        </div>
-        <div id="html-files" class="tab-content">
-            <div class="html-files">
-                {% for html_file, creation_date in html_files %}
-                    {% if html_file.endswith('.html') %}
-                        <div class="file-item">
-                            <div class="file-name">
-                                <a href="#" onclick="loadPlot('/hatpi/{{ folder_name }}/{{ html_file }}'); return false;">{{ html_file }}</a>
+            <div id="html-files" class="tab-content">
+                <div class="html-files">
+                    {% for html_file, creation_date in html_files %}
+                        {% if html_file.endswith('.html') %}
+                            <div class="file-item" data-filename="{{ html_file }}">
+                                <div class="file-name">
+                                    <a href="#" onclick="loadPlot('/hatpi/{{ folder_name }}/{{ html_file }}'); return false;">{{ html_file | format_filename }}</a>
+                                </div>
+                                <div class="file-date">{{ creation_date }}</div>
                             </div>
-                            <div class="file-date">{{ creation_date }}</div>
-                        </div>
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-        <div id="movies" class="tab-content">
-            <div class="movies">
-                <p>Coming soon!</p>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>            
+            <div id="movies" class="tab-content">
+                <div class="movies">
+                    <p>Coming soon!</p>
+                </div>
             </div>
         </div>
     </div>
