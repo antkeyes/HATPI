@@ -327,10 +327,18 @@ function filterImages(filter) {
 
     // Filter the image items based on the selected filter
     const imageItems = document.querySelectorAll('.images .file-item');
+    let visibleIndex = 0;
     imageItems.forEach(item => {
         const filename = item.getAttribute('data-filename').toLowerCase();
         if (filter === 'all' || filename.includes(filter)) {
             item.style.display = 'flex';
+            // Apply alternating background colors
+            if (visibleIndex % 2 === 0) {
+                item.style.backgroundColor = '#2F363D';
+            } else {
+                item.style.backgroundColor = '#21262E';
+            }
+            visibleIndex++;
         } else {
             item.style.display = 'none';
         }
@@ -355,10 +363,18 @@ function filterHtmlFiles(filter) {
 
     // Filter the html file items based on the selected filter
     const htmlFileItems = document.querySelectorAll('.plot-list .file-item');
+    let visibleIndex = 0;
     htmlFileItems.forEach(item => {
         const filename = item.getAttribute('data-filename').toLowerCase();
         if (filter === 'all' || filename.includes(filter)) {
             item.style.display = 'flex';
+            // Apply alternating background colors
+            if (visibleIndex % 2 === 0) {
+                item.style.backgroundColor = '#2F363D';
+            } else {
+                item.style.backgroundColor = '#21262E';
+            }
+            visibleIndex++;
         } else {
             item.style.display = 'none';
         }
