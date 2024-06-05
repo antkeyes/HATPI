@@ -30,7 +30,7 @@ function loadFolder(folderName) {
 
 function displayFolderContents(images, htmlFiles, folderName) {
     const imagesContainer = document.querySelector('.images');
-    const htmlFilesContainer = document.querySelector('.html-files');
+    const htmlFilesContainer = document.querySelector('.plot-list'); // Updated selector for plot-list
 
     // Clear existing content in the containers
     imagesContainer.innerHTML = '';
@@ -64,6 +64,7 @@ function displayFolderContents(images, htmlFiles, folderName) {
         htmlFilesContainer.appendChild(div);
     });
 }
+
 
 function showTab(tabId) {
     // Get all tab contents and deactivate them
@@ -154,7 +155,7 @@ function openGallery(filePath) {
 
     // Determine the file type and find the current file index in the list
     const fileType = filePath.split('.').pop();
-    currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.html-files .file-item' : '.images .file-item');
+    currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.plot-list .file-item' : '.images .file-item');
     currentGalleryFiles = Array.from(currentGalleryFiles).filter(item => item.style.display !== 'none').map(item => item.querySelector('a'));
     currentGalleryIndex = currentGalleryFiles.findIndex(file => file.getAttribute('onclick').includes(filePath));
 
@@ -238,6 +239,7 @@ function loadPlot(filePath) {
     };
     document.head.appendChild(script);
 }
+
 
 function submitComment(filePath, comment) {
     // Submit the comment to the server
@@ -352,7 +354,7 @@ function filterHtmlFiles(filter) {
     }
 
     // Filter the html file items based on the selected filter
-    const htmlFileItems = document.querySelectorAll('.html-files .file-item');
+    const htmlFileItems = document.querySelectorAll('.plot-list .file-item');
     htmlFileItems.forEach(item => {
         const filename = item.getAttribute('data-filename').toLowerCase();
         if (filter === 'all' || filename.includes(filter)) {
