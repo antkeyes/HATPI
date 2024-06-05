@@ -44,6 +44,19 @@ a:hover {
     margin-left: 20%;
 }
 
+.ihu-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 70px;
+    height: 70px;
+    background-color: #1C1F26;
+    color: #333333;
+    font-size: 1.8em;
+    border: 1px solid grey;
+    margin-top: 30px;
+}
+
 /* Container styles */
 .container {
     width: 60%;
@@ -181,12 +194,43 @@ a:hover {
 }
 
 /* Unique pill container and button styling */
+.back-to-home {
+    position: absolute;
+    right: 0;
+    top: 50%; /* Adjust as needed */
+    /* transform: translateY(-50%); */
+    text-align: center;
+    font-size: 2em;
+    /* color: #3579A6; */
+    /* text-decoration: none; */
+    /* padding: 10px 20px; */
+    /* background-color: #000; */
+    /* border: 1px solid #87689E; */
+    /* border-radius: 8px; */
+    margin-right: 20%;
+}
+
+a.back-to-home:hover {
+    color: #2980b9;
+}
+
+
 .pill-container-unique {
     display: flex;
     justify-content: left;
     margin-bottom: 20px;
     margin-top: 50px;
-    margin-left: 20%; /* Align with page title */
+    margin-left: 20%; 
+}
+
+.pills-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%; /* Adjust as needed to match the width of the folder-content-container */
+    margin: 0 auto; /* Center the pills-container */
+    position: relative;
+    margin-bottom: 20px; /* Add space below the pills-container */
 }
 
 .pill-button-unique {
@@ -279,6 +323,7 @@ a:hover {
     height: 100%;
 }
 
+/* comments container in gallery */
 .right-comments {
     display: flex;
     flex-direction: column;
@@ -355,6 +400,7 @@ a:hover {
     background-color: white;
 }
 
+/* comment container in gallery */
 .comment-container {
     width: 80%;
     display: flex;
@@ -362,12 +408,27 @@ a:hover {
     align-items: center;
     padding: 10px;
     background-color: #21262E;
-    box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
     border: 1px solid #8E97A1;
     border-radius: 8px;
     overflow: hidden;
     margin-right: 10px;
 }
+
+.log-comment-container {
+    width: 80%;
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    background-color: #21262E;
+    border: 1px solid #8E97A1;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-right: 10px;
+    margin-top: 10px; 
+}
+
 
 .commentBox {
     width: 90%;
@@ -410,18 +471,6 @@ a:hover {
     font-weight: bold;
 }
 
-a.back-to-home {
-    display: block;
-    margin: 20px auto;
-    text-align: center;
-    font-size: 1.2em;
-    color: #3579A6;
-    text-decoration: none;
-}
-
-a.back-to-home:hover {
-    color: #2980b9;
-}
 
 /* background stars animation */
 @keyframes move-background {

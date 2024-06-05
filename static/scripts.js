@@ -6,31 +6,23 @@ function loadFolder(folderName) {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-            return response.text(); // Convert response to text
+            return response.json(); // Convert response to JSON
         })
-        .then(text => {
-            try {
-                // Parse the response text as JSON
-                const data = JSON.parse(text);
-                const images = data.images;
-                const htmlFiles = data.html_files;
-                // Display the contents of the folder
-                displayFolderContents(images, htmlFiles, folderName);
-                // Set "All" filter as active by default
-                filterImages('all');
-                filterHtmlFiles('all');
-            } catch (error) {
-                // Log any errors that occur during JSON parsing
-                console.error('Error parsing JSON:', error);
-                console.error('Response text:', text);
-            }
+        .then(data => {
+            const images = data.images;
+            const htmlFiles = data.html_files;
+            // Display the contents of the folder
+            displayFolderContents(images, htmlFiles, folderName);
+            // Set "All" filter as active by default
+            filterImages('all');
+            filterHtmlFiles('all');
         })
         .catch(error => console.error('Error loading folder:', error)); // Log any errors that occur during the fetch process
 }
 
 function displayFolderContents(images, htmlFiles, folderName) {
     const imagesContainer = document.querySelector('.images');
-    const htmlFilesContainer = document.querySelector('.plot-list'); // Updated selector for plot-list
+    const htmlFilesContainer = document.querySelector('.plot-list'); // Ensure selector for plot-list is correct
 
     // Clear existing content in the containers
     imagesContainer.innerHTML = '';
@@ -65,8 +57,7 @@ function displayFolderContents(images, htmlFiles, folderName) {
     });
 }
 
-
-function showTab(tabId) {
+function showTab(tabId, event) {
     // Get all tab contents and deactivate them
     var tabContents = document.getElementsByClassName('tab-content');
     for (var i = 0; i < tabContents.length; i++) {
@@ -90,6 +81,9 @@ function showTab(tabId) {
     } else if (tabId === 'html-files') {
         document.getElementById('html-filters').classList.remove('hidden');
         document.getElementById('image-filters').classList.add('hidden');
+    } else {
+        document.getElementById('image-filters').classList.add('hidden');
+        document.getElementById('html-filters').classList.add('hidden');
     }
 }
 
@@ -210,12 +204,6 @@ function openGallery(filePath) {
     submitButton.className = 'submit-button';
     submitButton.onclick = () => submitComment(filePath, commentBox.value);
 
-    // Copy existing comments from the home comments container if it exists
-    const homeCommentsContainer = document.querySelector('.comments-container');
-    if (homeCommentsContainer) {
-        commentContainer.innerHTML = homeCommentsContainer.innerHTML;
-    }
-
     commentContainer.appendChild(commentBox);
     commentContainer.appendChild(submitButton);
 
@@ -257,9 +245,6 @@ function openGallery(filePath) {
     galleryOverlay.appendChild(bottomRow);
 }
 
-
-
-
 function loadPlot(filePath) {
     // Load the Bokeh library and then open the gallery with the specified file
     const script = document.createElement('script');
@@ -270,7 +255,6 @@ function loadPlot(filePath) {
     };
     document.head.appendChild(script);
 }
-
 
 function submitComment(filePath, comment) {
     // Submit the comment to the server
@@ -411,3 +395,26 @@ function filterHtmlFiles(filter) {
         }
     });
 }
+
+// Ensure the gallery overlay content scales properly
+function adjustGalleryContent() {
+    const galleryContent = document.querySelector('.gallery-content');
+    const overlayIframe = document.querySelector('.overlay-iframe');
+
+    if (galleryContent) {
+        galleryContent.style.maxWidth = '100%';
+        galleryContent.style.maxHeight = '100%';
+        galleryContent.style.objectFit = 'contain';
+    }
+
+    if (overlayIframe) {
+        overlayIframe.style.width = '100%';
+        overlayIframe.style.height = '100%';
+    }
+}
+
+// Attach the adjustGalleryContent function to the window resize event
+window.addEventListener('resize', adjustGalleryContent);
+
+// Call adjustGalleryContent once when the script is loaded to ensure initial sizing
+adjustGalleryContent();

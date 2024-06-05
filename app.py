@@ -88,9 +88,9 @@ def format_filename(value):
         if 'aper_phot_quality' in value:
             type_part = 'aper phot quality'
         elif 'astrometry_sip_quality' in value:
-            type_part = 'astrometry sip quality'
+            type_part = 'astrometry SIP quality'
         elif 'astrometry_wcs_quality' in value:
-            type_part = 'astrometry wcs quality'
+            type_part = 'astrometry WCS quality'
         elif 'calframe_quality' in value:
             type_part = 'calframe quality'
         elif 'ihu_status' in value:
