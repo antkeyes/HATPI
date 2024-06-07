@@ -111,11 +111,8 @@ def format_filename(value):
     formatted_string = "{} | {} | IHU-{}".format(date_part, type_part, ihu_part)
     return formatted_string
 
-
-
 app.jinja_env.filters['format_folder'] = format_folder_name
 app.jinja_env.filters['format_filename'] = format_filename
-
 
 @app.route('/')
 def home():
@@ -127,6 +124,12 @@ def home():
     logging.info("Rendering template with folders: %s and comments: %s" % (folders, comments))
     logging.info("Home route processing time: %s seconds" % (time.time() - start_time))
     return render_template('index.html', folders=folders, comments=comments)
+
+@app.route('/<folder_name>/')
+def folder(folder_name):
+    folder_path = os.path.join(BASE_DIR, folder_name)
+    images, html_files = get_cached_files(folder_path)
+    return render_template('folder.html', images=images, html_files=html_files, folder_name=folder_name)
 
 @app.route('/api/folder/<folder_name>')
 def api_folder(folder_name):
@@ -151,15 +154,14 @@ def get_cached_files(folder_path):
     files.sort()
     images = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.jpg')]
     html_files = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.html')]
+
+    # Sort images and html_files by creation date in reverse order
+    images.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
+    html_files.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
+
     cache.put(folder_path, (images, html_files))
     logging.info("get_cached_files - Directory reading and caching time: %s seconds" % (time.time() - start_time))
     return images, html_files
-
-@app.route('/<folder_name>/')
-def folder(folder_name):
-    folder_path = os.path.join(BASE_DIR, folder_name)
-    images, html_files = get_cached_files(folder_path)
-    return render_template('folder.html', images=images, html_files=html_files, folder_name=folder_name)
 
 @app.route('/<folder_name>/<filename>')
 def file(folder_name, filename):

@@ -114,6 +114,15 @@ a:hover {
     background-color: #21262E;
 }
 
+.file-item.even {
+    background-color: #2F363D;
+}
+
+.file-item.odd {
+    background-color: #21262E;
+}
+
+
 .file-item {
     padding-left: 10px;
     padding-right: 10px;

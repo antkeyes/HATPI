@@ -1,3 +1,22 @@
+// Utility function to apply alternating colors
+function applyAlternatingColors(containerSelector) {
+    const items = document.querySelectorAll(`${containerSelector} .file-item`);
+    let visibleItems = Array.from(items).filter(item => item.style.display !== 'none');
+    
+    visibleItems.forEach((item, index) => {
+        // Remove existing odd/even classes
+        item.classList.remove('odd', 'even');
+        
+        // Apply odd/even classes based on the current index
+        if (index % 2 === 0) {
+            item.classList.add('even');
+        } else {
+            item.classList.add('odd');
+        }
+    });
+}
+
+
 function loadFolder(folderName) {
     // Fetch the contents of the specified folder from the server
     fetch(`/api/folder/${folderName}`)
@@ -22,13 +41,15 @@ function loadFolder(folderName) {
 
 function displayFolderContents(images, htmlFiles, folderName) {
     const imagesContainer = document.querySelector('.images');
-    const htmlFilesContainer = document.querySelector('.plot-list'); // Ensure selector for plot-list is correct
+    const htmlFilesContainer = document.querySelector('.plot-list'); 
 
-    // Clear existing content in the containers
     imagesContainer.innerHTML = '';
     htmlFilesContainer.innerHTML = '';
 
-    // Create and append image elements to the images container
+    // Sort images and htmlFiles by creation date in reverse order
+    images.sort((a, b) => new Date(b[1]) - new Date(a[1]));
+    htmlFiles.sort((a, b) => new Date(b[1]) - new Date(a[1]));
+
     images.forEach(image => {
         const div = document.createElement('div');
         div.className = 'file-item';
@@ -42,7 +63,6 @@ function displayFolderContents(images, htmlFiles, folderName) {
         imagesContainer.appendChild(div);
     });
 
-    // Create and append HTML file elements to the HTML files container
     htmlFiles.forEach(htmlFile => {
         const div = document.createElement('div');
         div.className = 'file-item';
@@ -55,6 +75,10 @@ function displayFolderContents(images, htmlFiles, folderName) {
         `;
         htmlFilesContainer.appendChild(div);
     });
+
+    // Apply alternating colors
+    applyAlternatingColors('.images');
+    applyAlternatingColors('.plot-list');
 }
 
 function showTab(tabId, event) {
@@ -325,13 +349,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function filterImages(filter) {
-    // Get all filter buttons and remove the 'active' class from them
     const filterButtons = document.querySelectorAll('#image-filters .filter-button');
     filterButtons.forEach(button => {
         button.classList.remove('active');
     });
 
-    // Add the 'active' class to the clicked button or the default "All" button
     const activeButton = Array.from(filterButtons).find(button => {
         const buttonText = button.textContent.trim().toLowerCase().replace(' ', '-');
         return buttonText === filter;
@@ -340,34 +362,31 @@ function filterImages(filter) {
         activeButton.classList.add('active');
     }
 
-    // Filter the image items based on the selected filter
     const imageItems = document.querySelectorAll('.images .file-item');
-    let visibleIndex = 0;
-    imageItems.forEach(item => {
+    const filteredItems = Array.from(imageItems).filter(item => {
         const filename = item.getAttribute('data-filename').toLowerCase();
-        if (filter === 'all' || filename.includes(filter)) {
-            item.style.display = 'flex';
-            // Apply alternating background colors
-            if (visibleIndex % 2 === 0) {
-                item.style.backgroundColor = '#2F363D';
-            } else {
-                item.style.backgroundColor = '#21262E';
-            }
-            visibleIndex++;
-        } else {
-            item.style.display = 'none';
-        }
+        return filter === 'all' || filename.includes(filter);
     });
+
+    filteredItems.sort((a, b) => {
+        const dateA = new Date(a.querySelector('.file-date').textContent);
+        const dateB = new Date(b.querySelector('.file-date').textContent);
+        return dateB - dateA;
+    });
+
+    imageItems.forEach(item => item.style.display = 'none');
+    filteredItems.forEach(item => item.style.display = 'flex');
+
+    // Apply alternating colors
+    applyAlternatingColors('.images');
 }
 
 function filterHtmlFiles(filter) {
-    // Get all filter buttons and remove the 'active' class from them
     const filterButtons = document.querySelectorAll('#html-filters .filter-button');
     filterButtons.forEach(button => {
         button.classList.remove('active');
     });
 
-    // Add the 'active' class to the clicked button or the default "All" button
     const activeButton = Array.from(filterButtons).find(button => {
         const buttonText = button.textContent.trim().toLowerCase().replace(' ', '_');
         return buttonText === filter;
@@ -376,24 +395,23 @@ function filterHtmlFiles(filter) {
         activeButton.classList.add('active');
     }
 
-    // Filter the html file items based on the selected filter
     const htmlFileItems = document.querySelectorAll('.plot-list .file-item');
-    let visibleIndex = 0;
-    htmlFileItems.forEach(item => {
+    const filteredItems = Array.from(htmlFileItems).filter(item => {
         const filename = item.getAttribute('data-filename').toLowerCase();
-        if (filter === 'all' || filename.includes(filter)) {
-            item.style.display = 'flex';
-            // Apply alternating background colors
-            if (visibleIndex % 2 === 0) {
-                item.style.backgroundColor = '#2F363D';
-            } else {
-                item.style.backgroundColor = '#21262E';
-            }
-            visibleIndex++;
-        } else {
-            item.style.display = 'none';
-        }
+        return filter === 'all' || filename.includes(filter);
     });
+
+    filteredItems.sort((a, b) => {
+        const dateA = new Date(a.querySelector('.file-date').textContent);
+        const dateB = new Date(b.querySelector('.file-date').textContent);
+        return dateB - dateA;
+    });
+
+    htmlFileItems.forEach(item => item.style.display = 'none');
+    filteredItems.forEach(item => item.style.display = 'flex');
+
+    // Apply alternating colors
+    applyAlternatingColors('.plot-list');
 }
 
 // Ensure the gallery overlay content scales properly
