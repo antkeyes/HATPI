@@ -2,10 +2,11 @@ from flask import Flask, render_template, send_from_directory, send_file, reques
 import os
 import datetime
 import json
-from collections import OrderedDict
 import logging
 import time
 import re
+import threading
+from collections import OrderedDict
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 BASE_DIR = '/nfs/hatops/ar0/hatpi-website'
@@ -38,6 +39,9 @@ class LRUCache:
         elif len(self.cache) >= self.capacity:
             self.cache.popitem(last=False)
         self.cache[key] = value
+
+    def clear(self):
+        self.cache.clear()
 
 cache = LRUCache()
 
@@ -105,14 +109,54 @@ def format_filename(value):
         ihu_match = re.search(r'_(\d+)_', value)
         ihu_part = ihu_match.group(1) if ihu_match else 'IHU-'
 
+    elif value.endswith('.mp4'):
+        parts = value.split('_')
+        date_part = parts[0][2:6] + '-' + parts[0][6:8] + '-' + parts[0][8:10]
+
+        if 'calframe_movie' in value:
+            type_part = 'calframe'
+        elif 'calframe_stamps_movie' in value:
+            type_part = 'calframe stamps'
+        elif 'subframe_stamps_movie' in value:
+            type_part = 'subframe stamps'
+        elif 'subframe_movie' in value:
+            type_part = 'subframe'
+        else:
+            type_part = 'unknown'
+
+        ihu_match = re.search(r'_(\d+)_', value)
+        ihu_part = ihu_match.group(1) if ihu_match else 'IHU-'
+
     else:
         return value
 
-    formatted_string = "{} | {} | IHU-{}".format(date_part, type_part, ihu_part)
+    formatted_string = "%s | %s | IHU-%s" % (date_part, type_part, ihu_part)
     return formatted_string
+
 
 app.jinja_env.filters['format_folder'] = format_folder_name
 app.jinja_env.filters['format_filename'] = format_filename
+
+# Keep track of the previous state of the directory
+previous_state = set()
+
+def poll_directory():
+    global previous_state
+    while True:
+        current_state = set()
+        for folder in os.listdir(BASE_DIR):
+            folder_path = os.path.join(BASE_DIR, folder)
+            if os.path.isdir(folder_path) and folder not in EXCLUDE_FOLDERS:
+                current_state.add(folder_path)
+
+        # Check if there are any changes
+        if current_state != previous_state:
+            cache.clear()
+            print("Cache cleared due to directory change")
+            previous_state = current_state
+        
+        # Poll every 30 minutes
+        time.sleep(1800)
 
 @app.route('/')
 def home():
@@ -128,14 +172,14 @@ def home():
 @app.route('/<folder_name>/')
 def folder(folder_name):
     folder_path = os.path.join(BASE_DIR, folder_name)
-    images, html_files = get_cached_files(folder_path)
-    return render_template('folder.html', images=images, html_files=html_files, folder_name=folder_name)
+    images, html_files, movies = get_cached_files(folder_path)
+    return render_template('folder.html', images=images, html_files=html_files, movies=movies, folder_name=folder_name)
 
 @app.route('/api/folder/<folder_name>')
 def api_folder(folder_name):
     folder_path = os.path.join(BASE_DIR, folder_name)
-    images, html_files = get_cached_files(folder_path)
-    return jsonify({'images': images, 'html_files': html_files})
+    images, html_files, movies = get_cached_files(folder_path)
+    return jsonify({'images': images, 'html_files': html_files, 'movies': movies})
 
 def get_cached_files(folder_path):
     start_time = time.time()
@@ -149,19 +193,21 @@ def get_cached_files(folder_path):
         logging.debug("Files in %s: %s" % (folder_path, files))
     except Exception as e:
         logging.error("Error reading directory %s: %s" % (folder_path, e))
-        return [], []
+        return [], [], []
 
     files.sort()
     images = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.jpg')]
     html_files = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.html')]
+    movies = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.mp4')]
 
-    # Sort images and html_files by creation date in reverse order
+    # Sort images, html_files, and movies by creation date in reverse order
     images.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
     html_files.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
+    movies.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
 
-    cache.put(folder_path, (images, html_files))
+    cache.put(folder_path, (images, html_files, movies))
     logging.info("get_cached_files - Directory reading and caching time: %s seconds" % (time.time() - start_time))
-    return images, html_files
+    return images, html_files, movies
 
 @app.route('/<folder_name>/<filename>')
 def file(folder_name, filename):
@@ -181,9 +227,9 @@ def file(folder_name, filename):
 @app.route('/ihu/ihu-<cell_number>')
 def ihu_cell(cell_number):
     folder_name = 'ihu-%s' % cell_number
-    folder_path = os.path.join(BASE_DIR, 'ihu', folder_name)
-    images, html_files = get_cached_files(folder_path)
-    return render_template('folder.html', folder_name=folder_name, images=images, html_files=html_files)
+    folder_path = os.path.join(BASE_DIR, folder_name)  # Ensure this path is correct
+    images, html_files, movies = get_cached_files(folder_path)
+    return render_template('folder.html', folder_name=folder_name, images=images, html_files=html_files, movies=movies)
 
 @app.route('/submit_comment', methods=['POST'])
 def submit_comment():
@@ -227,4 +273,10 @@ def save_comments(comments):
         json.dump(comments, file, indent=4)
 
 if __name__ == '__main__':
+    # Start the polling thread
+    polling_thread = threading.Thread(target=poll_directory)
+    polling_thread.daemon = True
+    polling_thread.start()
+    
+    # Start the Flask application
     app.run(debug=True, port=8080)

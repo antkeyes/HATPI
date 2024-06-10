@@ -16,7 +16,6 @@ function applyAlternatingColors(containerSelector) {
     });
 }
 
-
 function loadFolder(folderName) {
     // Fetch the contents of the specified folder from the server
     fetch(`/api/folder/${folderName}`)
@@ -30,25 +29,29 @@ function loadFolder(folderName) {
         .then(data => {
             const images = data.images;
             const htmlFiles = data.html_files;
+            const movies = data.movies;
             // Display the contents of the folder
-            displayFolderContents(images, htmlFiles, folderName);
+            displayFolderContents(images, htmlFiles, movies, folderName);
             // Set "All" filter as active by default
             filterImages('all');
             filterHtmlFiles('all');
+            filterMovies('all');
         })
         .catch(error => console.error('Error loading folder:', error)); // Log any errors that occur during the fetch process
 }
 
-function displayFolderContents(images, htmlFiles, folderName) {
+function displayFolderContents(images, htmlFiles, movies, folderName) {
     const imagesContainer = document.querySelector('.images');
     const htmlFilesContainer = document.querySelector('.plot-list'); 
+    const moviesContainer = document.querySelector('.movies');
 
     imagesContainer.innerHTML = '';
     htmlFilesContainer.innerHTML = '';
+    moviesContainer.innerHTML = '';
 
-    // Sort images and htmlFiles by creation date in reverse order
     images.sort((a, b) => new Date(b[1]) - new Date(a[1]));
     htmlFiles.sort((a, b) => new Date(b[1]) - new Date(a[1]));
+    movies.sort((a, b) => new Date(b[1]) - new Date(a[1]));
 
     images.forEach(image => {
         const div = document.createElement('div');
@@ -76,10 +79,24 @@ function displayFolderContents(images, htmlFiles, folderName) {
         htmlFilesContainer.appendChild(div);
     });
 
-    // Apply alternating colors
+    movies.forEach(movie => {
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.setAttribute('data-filename', movie[0]);
+        div.innerHTML = `
+            <div class="file-name">
+                <a href="#" onclick="openGallery('/hatpi/${folderName}/${movie[0]}'); return false;">${movie[0]}</a>
+            </div>
+            <div class="file-date">${movie[1]}</div>
+        `;
+        moviesContainer.appendChild(div);
+    });
+
     applyAlternatingColors('.images');
     applyAlternatingColors('.plot-list');
+    applyAlternatingColors('.movies');
 }
+
 
 function showTab(tabId, event) {
     // Get all tab contents and deactivate them
@@ -102,12 +119,19 @@ function showTab(tabId, event) {
     if (tabId === 'images') {
         document.getElementById('image-filters').classList.remove('hidden');
         document.getElementById('html-filters').classList.add('hidden');
+        document.getElementById('movie-filters').classList.add('hidden');
     } else if (tabId === 'html-files') {
         document.getElementById('html-filters').classList.remove('hidden');
         document.getElementById('image-filters').classList.add('hidden');
+        document.getElementById('movie-filters').classList.add('hidden');
+    } else if (tabId === 'movies') {
+        document.getElementById('movie-filters').classList.remove('hidden');
+        document.getElementById('image-filters').classList.add('hidden');
+        document.getElementById('html-filters').classList.add('hidden');
     } else {
         document.getElementById('image-filters').classList.add('hidden');
         document.getElementById('html-filters').classList.add('hidden');
+        document.getElementById('movie-filters').classList.add('hidden');
     }
 }
 
@@ -173,7 +197,7 @@ function openGallery(filePath) {
 
     // Determine the file type and find the current file index in the list
     const fileType = filePath.split('.').pop();
-    currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.plot-list .file-item' : '.images .file-item');
+    currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.plot-list .file-item' : (fileType === 'mp4' ? '.movies .file-item' : '.images .file-item'));
     currentGalleryFiles = Array.from(currentGalleryFiles).filter(item => item.style.display !== 'none').map(item => item.querySelector('a'));
     currentGalleryIndex = currentGalleryFiles.findIndex(file => file.getAttribute('onclick').includes(filePath));
 
@@ -183,12 +207,24 @@ function openGallery(filePath) {
     }
 
     // Create the appropriate content element based on the file type
-    const content = document.createElement(fileType === 'html' ? 'iframe' : 'img');
-    content.src = filePath;
-    content.className = fileType === 'html' ? 'overlay-iframe' : 'gallery-content';
+    let content;
+    if (fileType === 'html') {
+        content = document.createElement('iframe');
+        content.src = filePath;
+        content.className = 'overlay-iframe';
+    } else if (fileType === 'mp4') {
+        content = document.createElement('video');
+        content.src = filePath;
+        content.className = 'gallery-content';
+        content.controls = true;
+    } else {
+        content = document.createElement('img');
+        content.src = filePath;
+        content.className = 'gallery-content';
+    }
     content.onerror = () => {
         console.error('Error loading file:', filePath);
-        content.alt = 'Failed to load image';
+        content.alt = 'Failed to load';
         content.src = 'path_to_placeholder_image.jpg'; // Use a placeholder image for failed loads
     };
 
@@ -413,6 +449,52 @@ function filterHtmlFiles(filter) {
     // Apply alternating colors
     applyAlternatingColors('.plot-list');
 }
+
+function filterMovies(filter) {
+    const filterButtons = document.querySelectorAll('#movie-filters .filter-button');
+    filterButtons.forEach(button => {
+        button.classList.remove('active');
+    });
+
+    const activeButton = Array.from(filterButtons).find(button => {
+        const buttonText = button.textContent.trim().toLowerCase().replace(' ', '-');
+        return buttonText === filter;
+    });
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
+
+    const movieItems = document.querySelectorAll('.movies .file-item');
+    const filteredItems = Array.from(movieItems).filter(item => {
+        const filename = item.getAttribute('data-filename').toLowerCase();
+
+        if (filter === 'all') {
+            return true;
+        } else if (filter === 'subframe') {
+            return filename.includes('subframe') && !filename.includes('subframe_stamps');
+        } else if (filter === 'subframe-stamps') {
+            return filename.includes('subframe_stamps');
+        } else if (filter === 'calframe') {
+            return filename.includes('calframe') && !filename.includes('calframe_stamps');
+        } else if (filter === 'calframe-stamps') {
+            return filename.includes('calframe_stamps');
+        }
+        return false;
+    });
+
+    filteredItems.sort((a, b) => {
+        const dateA = new Date(a.querySelector('.file-date').textContent);
+        const dateB = new Date(b.querySelector('.file-date').textContent);
+        return dateB - dateA;
+    });
+
+    movieItems.forEach(item => item.style.display = 'none');
+    filteredItems.forEach(item => item.style.display = 'flex');
+
+    // Apply alternating colors
+    applyAlternatingColors('.movies');
+}
+
 
 // Ensure the gallery overlay content scales properly
 function adjustGalleryContent() {

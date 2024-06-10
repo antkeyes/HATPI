@@ -41,6 +41,13 @@
                 <button class="filter-button" onclick="filterHtmlFiles('psf_sources_model')">PSF Sources Models</button>
                 <button class="filter-button" onclick="filterHtmlFiles('subframe_quality')">Subframe Quality</button>
             </div>
+            <div class="filter-buttons hidden" id="movie-filters">
+                <button class="filter-button active" onclick="filterMovies('all')">All</button>
+                <button class="filter-button" onclick="filterMovies('subframe')">Subframe</button>
+                <button class="filter-button" onclick="filterMovies('subframe-stamps')">Subframe Stamps</button>
+                <button class="filter-button" onclick="filterMovies('calframe')">Calframe</button>
+                <button class="filter-button" onclick="filterMovies('calframe-stamps')">Calframe Stamps</button>
+            </div>
         </div>
         <div class="images-list-container">
             <div id="images" class="tab-content active">
@@ -75,7 +82,16 @@
             </div>            
             <div id="movies" class="tab-content">
                 <div class="movies">
-                    <p>Coming soon!</p>
+                    {% for movie, creation_date in movies %}
+                        {% if movie.endswith('.mp4') %}
+                            <div class="file-item" data-filename="{{ movie }}">
+                                <div class="file-name">
+                                    <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ movie }}'); return false;">{{ movie | format_filename }}</a>
+                                </div>
+                                <div class="file-date">{{ creation_date }}</div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
                 </div>
             </div>
         </div>
@@ -105,7 +121,7 @@
                     else if (ihuNumber >= 47 && ihuNumber <= 54) backgroundColor = '#CFE1F3';
                     else if (ihuNumber >= 55 && ihuNumber <= 61) backgroundColor = '#B4A7D5';
                     else if (ihuNumber >= 62 && ihuNumber <= 64) backgroundColor = '#D5A6BE';
-                    
+
                     if (backgroundColor) {
                         pageTitle.style.backgroundColor = backgroundColor;
                     }
