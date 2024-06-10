@@ -31,9 +31,15 @@ for dir in "$base_dir"/1-*; do
         # Create the new ihu directory if it doesn't exist
         ihu_dir="${target_dir}/ihu-${ihu_number}"
         mkdir -p "$ihu_dir"
-        # Create a symlink to the file in the new ihu directory
-        ln -s "$file" "$ihu_dir/"
-        echo "Created symlink for $file in $ihu_dir"
+
+        # Create a symlink to the file in the new ihu directory only if it doesn't already exist
+        link_name="${ihu_dir}/$(basename "$file")"
+        if [[ ! -e "$link_name" ]]; then
+          ln -s "$file" "$link_name"
+          echo "Created symlink for $file in $ihu_dir"
+        else
+          echo "Symlink for $file already exists in $ihu_dir"
+        fi
       fi
     done
   fi
