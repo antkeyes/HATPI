@@ -49,10 +49,7 @@ function displayFolderContents(images, htmlFiles, movies, folderName) {
     htmlFilesContainer.innerHTML = '';
     moviesContainer.innerHTML = '';
 
-    images.sort((a, b) => new Date(b[1]) - new Date(a[1]));
-    htmlFiles.sort((a, b) => new Date(b[1]) - new Date(a[1]));
-    movies.sort((a, b) => new Date(b[1]) - new Date(a[1]));
-
+    // Server-side sorting is already applied, so no need to re-sort here
     images.forEach(image => {
         const div = document.createElement('div');
         div.className = 'file-item';
@@ -96,6 +93,7 @@ function displayFolderContents(images, htmlFiles, movies, folderName) {
     applyAlternatingColors('.plot-list');
     applyAlternatingColors('.movies');
 }
+
 
 
 function showTab(tabId, event) {
@@ -191,9 +189,16 @@ function openGallery(filePath) {
 
     // Extract the file name from the file path and create a title element
     const fileName = filePath.split('/').pop();
-    const title = document.createElement('div');
-    title.innerText = fileName;
-    title.className = 'gallery-title';
+    const formattedTitle = formatTitle(fileName);
+    const titleContainer = document.createElement('div');
+    titleContainer.className = 'gallery-title-container';
+
+    formattedTitle.forEach(line => {
+        const lineElement = document.createElement('div');
+        lineElement.className = 'gallery-title-line';
+        lineElement.innerText = line;
+        titleContainer.appendChild(lineElement);
+    });
 
     // Determine the file type and find the current file index in the list
     const fileType = filePath.split('.').pop();
@@ -211,7 +216,7 @@ function openGallery(filePath) {
     if (fileType === 'html') {
         content = document.createElement('iframe');
         content.src = filePath;
-        content.className = 'overlay-iframe';
+        content.className = 'overlay-iframe gallery-content';
     } else if (fileType === 'mp4') {
         content = document.createElement('video');
         content.src = filePath;
@@ -268,17 +273,8 @@ function openGallery(filePath) {
     commentContainer.appendChild(submitButton);
 
     // Create the container structure
-    const topRow = document.createElement('div');
-    topRow.className = 'top-row';
-    const bottomRow = document.createElement('div');
-    bottomRow.className = 'bottom-row';
-
-    const leftEmpty = document.createElement('div');
-    leftEmpty.className = 'left-empty';
-    const middleCenter = document.createElement('div');
-    middleCenter.className = 'middle-center';
-    const rightClose = document.createElement('div');
-    rightClose.className = 'right-close';
+    const contentContainer = document.createElement('div');
+    contentContainer.className = 'content-container';
 
     const leftContent = document.createElement('div');
     leftContent.className = 'left-content';
@@ -286,23 +282,94 @@ function openGallery(filePath) {
     rightComments.className = 'right-comments';
 
     // Append elements to the structure
-    middleCenter.appendChild(leftArrow);
-    middleCenter.appendChild(title);
-    middleCenter.appendChild(rightArrow);
-    rightClose.appendChild(closeButton);
-
+    leftContent.appendChild(leftArrow);
     leftContent.appendChild(content);
+    leftContent.appendChild(rightArrow);
+
+    rightComments.appendChild(titleContainer);
     rightComments.appendChild(commentContainer);
 
-    topRow.appendChild(leftEmpty);
-    topRow.appendChild(middleCenter);
-    topRow.appendChild(rightClose);
+    contentContainer.appendChild(leftContent);
+    contentContainer.appendChild(rightComments);
 
-    bottomRow.appendChild(leftContent);
-    bottomRow.appendChild(rightComments);
+    galleryOverlay.appendChild(contentContainer);
+    galleryOverlay.appendChild(closeButton); // Add close button to gallery overlay
 
-    galleryOverlay.appendChild(topRow);
-    galleryOverlay.appendChild(bottomRow);
+    // Adjust content after appending
+    adjustGalleryContent();
+}
+
+
+function formatTitle(fileName) {
+    const parts = fileName.split('_');
+    let titleLines = [];
+
+    if (fileName.endsWith('.mp4')) {
+        const dateMatch = fileName.match(/(\d{4})(\d{2})(\d{2})/);
+        const ihuMatch = fileName.match(/_(\d+)_/);  // Match the IHU number
+        let description = '';
+
+        if (fileName.includes('subframe_stamps_movie')) {
+            description = 'subframe stamps';
+        } else if (fileName.includes('subframe_movie')) {
+            description = 'subframe';
+        } else if (fileName.includes('calframe_stamps_movie')) {
+            description = 'calframe stamps';
+        } else if (fileName.includes('calframe_movie')) {
+            description = 'calframe';
+        } else {
+            description = 'unknown';
+        }
+
+        if (description) {
+            titleLines.push(description);
+        }
+
+        if (ihuMatch) {
+            titleLines.push(`ihu-${ihuMatch[1]}`);
+        }
+
+        if (dateMatch) {
+            titleLines.push(`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`);
+        }
+    } else {
+        if (fileName.includes('masterdark')) {
+            titleLines.push('dark');
+        } else if (fileName.includes('masterbias')) {
+            titleLines.push('bias');
+        } else if (fileName.includes('masterflat') && fileName.includes('-ss')) {
+            titleLines.push('flat-ss');
+        } else if (fileName.includes('masterglobflat') && fileName.includes('-ls')) {
+            titleLines.push('flat-ls');
+        } else {
+            titleLines.push(parts[0]);
+        }
+
+        const ihuMatch = fileName.match(/ihu-\d+/);
+        if (ihuMatch) {
+            titleLines.push(ihuMatch[0]);
+        }
+
+        const dateMatch = fileName.match(/\d{8}/);
+        const dateNumberMatch = fileName.match(/(\d{8})-(\d+)/);
+        if (dateMatch && dateNumberMatch) {
+            const date = dateMatch[0];
+            const number = dateNumberMatch[2];
+            titleLines.push(`${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)} | ${number}`);
+        }
+
+        const exptimeMatch = fileName.match(/EXPTIME\d+\.\d+/);
+        if (exptimeMatch) {
+            titleLines.push(`exposure time: ${exptimeMatch[0].replace('EXPTIME', '')}`);
+        }
+
+        const tempMatch = fileName.match(/CCDTEMP-?\d+\.\d+/);
+        if (tempMatch) {
+            titleLines.push(`ccd temp: ${tempMatch[0].replace('CCDTEMP', '')}`);
+        }
+    }
+
+    return titleLines;
 }
 
 function loadPlot(filePath) {

@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 BASE_DIR = '/nfs/hatops/ar0/hatpi-website'
-EXCLUDE_FOLDERS = set(['static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies'])
+EXCLUDE_FOLDERS = set(['static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs'])
 
 # Dynamically add all 'ihu' folders to the EXCLUDE_FOLDERS set
 for folder in os.listdir(BASE_DIR):
@@ -181,6 +181,16 @@ def api_folder(folder_name):
     images, html_files, movies = get_cached_files(folder_path)
     return jsonify({'images': images, 'html_files': html_files, 'movies': movies})
 
+def is_date_based_folder(folder_name):
+    # Assuming date-based folder names follow the pattern 'YYYY-MM-DD'
+    return re.match(r'\d{4}-\d{2}-\d{2}', folder_name) is not None
+
+def extract_ihu_number(filename):
+    match = re.search(r'ihu-(\d+)', filename)
+    if match:
+        return int(match.group(1))
+    return float('inf')  # Return a large number if no IHU number is found
+
 def get_cached_files(folder_path):
     start_time = time.time()
     cached_result = cache.get(folder_path)
@@ -194,20 +204,30 @@ def get_cached_files(folder_path):
     except Exception as e:
         logging.error("Error reading directory %s: %s" % (folder_path, e))
         return [], [], []
-
+    
     files.sort()
     images = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.jpg')]
     html_files = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.html')]
     movies = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.mp4')]
 
-    # Sort images, html_files, and movies by creation date in reverse order
-    images.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
+    # Check if the folder path starts with /nfs/hatops/ar0/hatpi-website/1-
+    if folder_path.startswith('/nfs/hatops/ar0/hatpi-website/1-'):
+        # Sort images and movies by IHU number for specific directories
+        images.sort(key=lambda x: extract_ihu_number(x[0]))
+        movies.sort(key=lambda x: extract_ihu_number(x[0]))
+    else:
+        # Sort images and movies by creation date for other directories
+        images.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
+        movies.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
+    
     html_files.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
-    movies.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
 
     cache.put(folder_path, (images, html_files, movies))
     logging.info("get_cached_files - Directory reading and caching time: %s seconds" % (time.time() - start_time))
     return images, html_files, movies
+
+
+
 
 @app.route('/<folder_name>/<filename>')
 def file(folder_name, filename):

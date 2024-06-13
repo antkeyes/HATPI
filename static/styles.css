@@ -278,7 +278,7 @@ a.back-to-home:hover {
     display: block;
 }
 
-/* Gallery overlay styling */
+/* gallery overlay styling */
 .gallery-overlay {
     position: fixed;
     top: 0;
@@ -288,57 +288,38 @@ a.back-to-home:hover {
     background-color: rgba(0, 0, 0, 0.8);
     z-index: 1000;
     display: grid;
-    grid-template-rows: 1fr 8fr;
-    /* padding: 20px; */
-}
-
-.top-row {
-    display: grid;
-    grid-template-columns: 1fr 3fr 1fr;
-    align-items: center;
-}
-
-.bottom-row {
-    display: grid;
-    grid-template-columns: 5fr 1fr;
-    align-items: center;
     overflow: hidden;
 }
 
-.left-empty {
-    /* Intentionally left empty */
-}
-
-.middle-center {
+.content-container {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    position: relative;
+    align-items: center; /* Center contents vertically */
+    height: 100%;
     width: 100%;
-}
-
-.right-close {
-    display: flex;
-    justify-content: center;
-    align-items: center;
 }
 
 .left-content {
     display: flex;
     justify-content: center;
     align-items: center;
-    overflow: auto;
-    width: 100%;
+    overflow: hidden;
+    width: calc(100% - 250px); /* Adjust based on right-comments width */
     height: 100%;
+    position: relative;
 }
 
-/* comments container in gallery */
 .right-comments {
+    position: relative; /* Ensure the close button is positioned correctly within this container */
     display: flex;
     flex-direction: column;
-    align-items: center;
-    overflow: auto;
+    align-items: center; /* Center contents horizontally */
+    justify-content: center; /* Center contents vertically */
+    width: 250px; /* Fixed width for comments section */
+    margin-left: 20px;
+    margin-right: 20px; /* Add this line for right margin */
 }
+
 
 .gallery-title {
     color: #8E97A1;
@@ -352,12 +333,27 @@ a.back-to-home:hover {
     flex-grow: 1;
 }
 
+.gallery-title-container {
+    margin-bottom: 10px;
+}
+
+.gallery-title-line {
+    color: #8E97A1;
+    font-size: 16px;
+    margin: 5px 0;
+    text-align: left;
+    white-space: nowrap;
+    margin-right: 10px; 
+}
+
 .arrow {
     font-size: 32px;
     color: white;
     transition: color 0.3s;
     cursor: pointer;
-    margin: 0 10px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .arrow:hover {
@@ -365,23 +361,11 @@ a.back-to-home:hover {
 }
 
 .left-arrow {
-    position: absolute;
-    left: 0;
-    font-size: 32px;
-    color: white;
-    transition: color 0.3s;
-    cursor: pointer;
-    margin: 0 10px;
+    left: 10px; /* Adjust the value to move the arrow closer to the content */
 }
 
 .right-arrow {
-    position: absolute;
-    right: 0;
-    font-size: 32px;
-    color: white;
-    transition: color 0.3s;
-    cursor: pointer;
-    margin: 0 10px;
+    right: 10px; /* Adjust the value to move the arrow closer to the content */
 }
 
 .closeButton {
@@ -391,6 +375,9 @@ a.back-to-home:hover {
     border: none;
     cursor: pointer;
     transition: color 0.3s;
+    position: absolute;
+    top: 10px;
+    right: 10px;
 }
 
 .closeButton:hover {
@@ -398,9 +385,14 @@ a.back-to-home:hover {
 }
 
 .gallery-content {
-    max-width: 95%;
-    max-height: 95%;
+    height: 100vh; /* Ensure the image fills the vertical space */
+    width: auto; /* Ensure the width adjusts accordingly to maintain aspect ratio */
     object-fit: contain;
+    position: relative;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .overlay-iframe {
@@ -411,7 +403,7 @@ a.back-to-home:hover {
 
 /* comment container in gallery */
 .comment-container {
-    width: 80%;
+    width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -438,7 +430,6 @@ a.back-to-home:hover {
     margin-top: 10px; 
 }
 
-
 .commentBox {
     width: 90%;
     height: 50px;
@@ -463,6 +454,7 @@ a.back-to-home:hover {
 .submit-button:hover {
     background-color: #a787b3;
 }
+
 
 /* Styles for folder list on the home page */
 .folder-list {
