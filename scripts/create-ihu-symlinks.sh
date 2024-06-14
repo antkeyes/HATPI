@@ -3,12 +3,6 @@
 # Base directory containing the "1-" directories
 base_dir="/nfs/hatops/ar0/hatpi-website"
 
-# Target directory for the new ihu directories
-target_dir="${base_dir}/ihu"
-
-# Create the target directory if it doesn't exist
-mkdir -p "$target_dir"
-
 # Loop through each "1-" directory in the base directory
 for dir in "$base_dir"/1-*; do
   if [[ -d "$dir" ]]; then
@@ -29,7 +23,7 @@ for dir in "$base_dir"/1-*; do
 
         echo "Found ihu number: $ihu_number"
         # Create the new ihu directory if it doesn't exist
-        ihu_dir="${target_dir}/ihu-${ihu_number}"
+        ihu_dir="${base_dir}/ihu-${ihu_number}"
         mkdir -p "$ihu_dir"
 
         # Create a symlink to the file in the new ihu directory only if it doesn't already exist
@@ -40,8 +34,12 @@ for dir in "$base_dir"/1-*; do
         else
           echo "Symlink for $file already exists in $ihu_dir"
         fi
+      else
+        echo "Skipping non-file item: $file"
       fi
     done
+  else
+    echo "Skipping non-directory item: $dir"
   fi
 done
 
