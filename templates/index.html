@@ -52,6 +52,9 @@
             {% for unique_key, comment in comments.items() %}
                 <div class="comment-item">
                     <div class="comment-header">
+                        {% if comment.markup_true %}
+                            <div class="markup-icon">{{ comment.markup_true }}</div>
+                        {% endif %}
                         <span class="comment-filename">
                             <a href="{{ comment.file_path }}" target="_blank">
                                 {{ comment.file_path.split('/')[-1] }}
@@ -65,7 +68,8 @@
                 </div>
             {% endfor %}
         </div>
-    </div>
+
+
 
     <script src="/hatpi/static/scripts.js"></script>
     <script>

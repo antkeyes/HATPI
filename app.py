@@ -1,4 +1,4 @@
-from flask import Flask, render_template, send_from_directory, send_file, request, jsonify
+from flask import Flask, render_template, send_from_directory, send_file, request, jsonify, make_response
 import os
 import datetime
 import json
@@ -6,18 +6,19 @@ import logging
 import time
 import re
 import threading
+import base64
 from collections import OrderedDict
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 BASE_DIR = '/nfs/hatops/ar0/hatpi-website'
-EXCLUDE_FOLDERS = set(['static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs'])
+EXCLUDE_FOLDERS = set(['static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images'])
 
-# Dynamically add all 'ihu' folders to the EXCLUDE_FOLDERS set
 for folder in os.listdir(BASE_DIR):
     if folder.startswith('ihu'):
         EXCLUDE_FOLDERS.add(folder)
 
 COMMENTS_FILE = '/nfs/hatops/ar0/hatpi-website/comments.json'
+SAVE_PATH = '/nfs/hatops/ar0/hatpi-website/markup_images'
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -133,11 +134,9 @@ def format_filename(value):
     formatted_string = "%s | %s | IHU-%s" % (date_part, type_part, ihu_part)
     return formatted_string
 
-
 app.jinja_env.filters['format_folder'] = format_folder_name
 app.jinja_env.filters['format_filename'] = format_filename
 
-# Keep track of the previous state of the directory
 previous_state = set()
 
 def poll_directory():
@@ -149,13 +148,11 @@ def poll_directory():
             if os.path.isdir(folder_path) and folder not in EXCLUDE_FOLDERS:
                 current_state.add(folder_path)
 
-        # Check if there are any changes
         if current_state != previous_state:
             cache.clear()
             print("Cache cleared due to directory change")
             previous_state = current_state
         
-        # Poll every 30 minutes
         time.sleep(1800)
 
 @app.route('/')
@@ -182,14 +179,13 @@ def api_folder(folder_name):
     return jsonify({'images': images, 'html_files': html_files, 'movies': movies})
 
 def is_date_based_folder(folder_name):
-    # Assuming date-based folder names follow the pattern 'YYYY-MM-DD'
     return re.match(r'\d{4}-\d{2}-\d{2}', folder_name) is not None
 
 def extract_ihu_number(filename):
     match = re.search(r'ihu-(\d+)', filename)
     if match:
         return int(match.group(1))
-    return float('inf')  # Return a large number if no IHU number is found
+    return float('inf')
 
 def get_cached_files(folder_path):
     start_time = time.time()
@@ -219,13 +215,63 @@ def get_cached_files(folder_path):
         html_files.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
         movies.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
         
-
-    cache.put(folder_path, (images, html_files, movies))
+        cache.put(folder_path, (images, html_files, movies))
     logging.info("get_cached_files - Directory reading and caching time: %s seconds" % (time.time() - start_time))
     return images, html_files, movies
 
+@app.route('/hatpi/comments.json')
+def get_comments():
+    try:
+        with open(COMMENTS_FILE, 'r') as file:
+            comments = json.load(file)
+        return jsonify(comments)
+    except Exception as e:
+        app.logger.error("Error loading comments: {}".format(str(e)))
+        return jsonify({})
 
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
+@app.route('/api/save_markups', methods=['POST'])
+def save_markups():
+    try:
+        data = request.get_json()
+        file_name = data['fileName']
+        image_data = data['imageData']
+        comment = data.get('comment', '')
+        markup_true = data.get('markup_true')
+
+        if not comment:
+            return jsonify(success=False, message="Comment is required")
+
+        image_data = image_data.replace('data:image/jpeg;base64,', '')
+        image_data = base64.b64decode(image_data)
+
+        if not os.path.exists(SAVE_PATH):
+            os.makedirs(SAVE_PATH)
+
+        save_file_path = os.path.join(SAVE_PATH, file_name)
+        with open(save_file_path, 'wb') as f:
+            f.write(image_data)
+
+        comments = load_comments()
+        unique_key = '%s_%s' % (file_name, datetime.datetime.now().strftime('%Y%m%d%H%M%S%f'))
+        comments[unique_key] = {
+            'comment': comment,
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'file_path': '/hatpi/markup_images/%s' % file_name,
+            'markup_true': markup_true
+        }
+        save_comments(comments)
+
+        return jsonify(success=True)
+    except Exception as e:
+        app.logger.error("Error saving markups: {}".format(str(e)))
+        return jsonify(success=False, message=str(e))
 
 @app.route('/<folder_name>/<filename>')
 def file(folder_name, filename):
@@ -234,7 +280,6 @@ def file(folder_name, filename):
 
     app.logger.info("Requested file: %s" % file_path)
 
-    # Resolve symlink if it exists
     if os.path.islink(file_path):
         real_path = os.path.realpath(file_path)
         app.logger.info("Resolved symlink %s to %s" % (file_path, real_path))
@@ -245,7 +290,7 @@ def file(folder_name, filename):
 @app.route('/ihu/ihu-<cell_number>')
 def ihu_cell(cell_number):
     folder_name = 'ihu-%s' % cell_number
-    folder_path = os.path.join(BASE_DIR, folder_name)  # Ensure this path is correct
+    folder_path = os.path.join(BASE_DIR, folder_name)
     images, html_files, movies = get_cached_files(folder_path)
     return render_template('folder.html', folder_name=folder_name, images=images, html_files=html_files, movies=movies)
 
@@ -255,13 +300,15 @@ def submit_comment():
     file_name = data.get('fileName')
     file_path = data.get('filePath')
     comment = data.get('comment')
+    markup_true = data.get('markup_true', '')
     if file_name and comment:
         comments = load_comments()
         unique_key = '%s_%s' % (file_name, datetime.datetime.now().strftime('%Y%m%d%H%M%S%f'))
         comments[unique_key] = {
             'file_path': file_path,
             'comment': comment,
-            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'markup_true': markup_true
         }
         save_comments(comments)
         return jsonify({'success': True})
@@ -291,10 +338,8 @@ def save_comments(comments):
         json.dump(comments, file, indent=4)
 
 if __name__ == '__main__':
-    # Start the polling thread
     polling_thread = threading.Thread(target=poll_directory)
     polling_thread.daemon = True
     polling_thread.start()
     
-    # Start the Flask application
     app.run(debug=True, port=8080)

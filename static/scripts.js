@@ -4,10 +4,7 @@ function applyAlternatingColors(containerSelector) {
     let visibleItems = Array.from(items).filter(item => item.style.display !== 'none');
     
     visibleItems.forEach((item, index) => {
-        // Remove existing odd/even classes
         item.classList.remove('odd', 'even');
-        
-        // Apply odd/even classes based on the current index
         if (index % 2 === 0) {
             item.classList.add('even');
         } else {
@@ -17,27 +14,23 @@ function applyAlternatingColors(containerSelector) {
 }
 
 function loadFolder(folderName) {
-    // Fetch the contents of the specified folder from the server
     fetch(`/api/folder/${folderName}`)
         .then(response => {
-            // Check if the response is successful
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-            return response.json(); // Convert response to JSON
+            return response.json();
         })
         .then(data => {
             const images = data.images;
             const htmlFiles = data.html_files;
             const movies = data.movies;
-            // Display the contents of the folder
             displayFolderContents(images, htmlFiles, movies, folderName);
-            // Set "All" filter as active by default
             filterImages('all');
             filterHtmlFiles('all');
             filterMovies('all');
         })
-        .catch(error => console.error('Error loading folder:', error)); // Log any errors that occur during the fetch process
+        .catch(error => console.error('Error loading folder:', error));
 }
 
 function displayFolderContents(images, htmlFiles, movies, folderName) {
@@ -49,7 +42,6 @@ function displayFolderContents(images, htmlFiles, movies, folderName) {
     htmlFilesContainer.innerHTML = '';
     moviesContainer.innerHTML = '';
 
-    // Server-side sorting is already applied, so no need to re-sort here
     images.forEach(image => {
         const div = document.createElement('div');
         div.className = 'file-item';
@@ -94,26 +86,20 @@ function displayFolderContents(images, htmlFiles, movies, folderName) {
     applyAlternatingColors('.movies');
 }
 
-
-
 function showTab(tabId, event) {
-    // Get all tab contents and deactivate them
     var tabContents = document.getElementsByClassName('tab-content');
     for (var i = 0; i < tabContents.length; i++) {
         tabContents[i].classList.remove('active');
     }
 
-    // Get all pill buttons and deactivate them
     var pillButtons = document.getElementsByClassName('pill-button-unique');
     for (var i = 0; i < pillButtons.length; i++) {
         pillButtons[i].classList.remove('active');
     }
 
-    // Activate the selected tab and its corresponding button
     document.getElementById(tabId).classList.add('active');
     event.target.classList.add('active');
 
-    // Show or hide filter buttons based on the selected tab
     if (tabId === 'images') {
         document.getElementById('image-filters').classList.remove('hidden');
         document.getElementById('html-filters').classList.add('hidden');
@@ -133,17 +119,16 @@ function showTab(tabId, event) {
     }
 }
 
-// Global variable to track the current gallery state
 let currentGalleryIndex = -1;
 let currentGalleryFiles = [];
 let galleryOverlay = null;
+let magnifierActive = false;
+let drawingActive = false;
 
-// Function to navigate the gallery
 function navigateGallery(direction) {
     currentGalleryIndex = (currentGalleryIndex + direction + currentGalleryFiles.length) % currentGalleryFiles.length;
     let nextFile = null;
 
-    // Determine the next file to display based on the onclick attribute
     const onclickString = currentGalleryFiles[currentGalleryIndex].getAttribute('onclick');
     const openGalleryMatch = onclickString.match(/openGallery\('([^']+)'\)/);
     const loadPlotMatch = onclickString.match(/loadPlot\('([^']+)'\)/);
@@ -161,7 +146,6 @@ function navigateGallery(direction) {
     }
 }
 
-// Event listener for keyboard navigation
 const handleKeyDown = (event) => {
     if (currentGalleryIndex === -1 || !currentGalleryFiles.length) return;
 
@@ -169,25 +153,91 @@ const handleKeyDown = (event) => {
         navigateGallery(-1);
     } else if (event.key === 'ArrowRight') {
         navigateGallery(1);
+    } else if (event.key === 'z') {
+        magnifierActive = true;
+        document.body.classList.add('hide-cursor');
+    } else if (event.key == 'd') {
+        drawingActive = true;
+        document.body.style.cursor = 'crosshair';
     }
 };
 
-// Attach the event listener to the document once
+const handleKeyUp = (event) => {
+    if (event.key === 'z') {
+        magnifierActive = false;
+        document.body.classList.remove('hide-cursor');
+        const magnifier = document.getElementById('magnifier');
+        if (magnifier) {
+            magnifier.style.display = 'none';
+        }
+    } else if (event.key == 'd') {
+        drawingActive = false;
+        document.body.style.cursor = 'default';
+    }
+};
+
 document.addEventListener('keydown', handleKeyDown);
+document.addEventListener('keyup', handleKeyUp);
+document.addEventListener('mousemove', showMagnifier);
+
+function createMagnifier() {
+    const magnifier = document.createElement('div');
+    magnifier.id = 'magnifier';
+    magnifier.className = 'magnifier';
+    document.body.appendChild(magnifier);
+}
+
+function showMagnifier(event) {
+    const magnifier = document.getElementById('magnifier');
+    if (magnifierActive && magnifier) {
+        const img = document.querySelector('.gallery-content');
+        const imgRect = img.getBoundingClientRect();
+        const magnifierSize = 400;
+        const zoomLevel = 2;
+
+        let magnifierX = event.clientX - magnifierSize / 2;
+        let magnifierY = event.clientY - magnifierSize / 2;
+
+        if (magnifierX < imgRect.left) magnifierX = imgRect.left;
+        if (magnifierY < imgRect.top) magnifierY = imgRect.top;
+        if (magnifierX + magnifierSize > imgRect.right) magnifierX = imgRect.right - magnifierSize;
+        if (magnifierY + magnifierSize > imgRect.bottom) magnifierY = imgRect.bottom - magnifierSize;
+
+        if (event.clientX > imgRect.left && event.clientX < imgRect.right &&
+            event.clientY > imgRect.top && event.clientY < imgRect.bottom) {
+            magnifier.style.display = 'block';
+            magnifier.style.left = `${magnifierX}px`;
+            magnifier.style.top = `${magnifierY}px`;
+
+            let bgPosX = (event.clientX - imgRect.left) * zoomLevel - magnifierSize / 2;
+            let bgPosY = (event.clientY - imgRect.top) * zoomLevel - magnifierSize / 2;
+
+            if (bgPosX < 0) bgPosX = 0;
+            if (bgPosY < 0) bgPosY = 0;
+            if (bgPosX + magnifierSize > imgRect.width * zoomLevel) bgPosX = imgRect.width * zoomLevel - magnifierSize;
+            if (bgPosY + magnifierSize > imgRect.height * zoomLevel) bgPosY = imgRect.height * zoomLevel - magnifierSize;
+
+            magnifier.style.backgroundImage = `url(${img.src})`;
+            magnifier.style.backgroundSize = `${imgRect.width * zoomLevel}px ${imgRect.height * zoomLevel}px`;
+            magnifier.style.backgroundPosition = `-${bgPosX}px -${bgPosY}px`;
+        } else {
+            magnifier.style.display = 'none';
+        }
+    }
+}
+
+document.addEventListener('mousemove', showMagnifier);
 
 function openGallery(filePath) {
     if (!galleryOverlay) {
-        // Create the overlay element if it doesn't exist
         galleryOverlay = document.createElement('div');
         galleryOverlay.id = 'galleryOverlay';
         galleryOverlay.className = 'gallery-overlay';
         document.body.appendChild(galleryOverlay);
     } else {
-        // Clear existing content in the overlay
         galleryOverlay.innerHTML = '';
     }
 
-    // Extract the file name from the file path and create a title element
     const fileName = filePath.split('/').pop();
     const formattedTitle = formatTitle(fileName);
     const titleContainer = document.createElement('div');
@@ -200,7 +250,6 @@ function openGallery(filePath) {
         titleContainer.appendChild(lineElement);
     });
 
-    // Determine the file type and find the current file index in the list
     const fileType = filePath.split('.').pop();
     currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.plot-list .file-item' : (fileType === 'mp4' ? '.movies .file-item' : '.images .file-item'));
     currentGalleryFiles = Array.from(currentGalleryFiles).filter(item => item.style.display !== 'none').map(item => item.querySelector('a'));
@@ -211,7 +260,6 @@ function openGallery(filePath) {
         return;
     }
 
-    // Create the appropriate content element based on the file type
     let content;
     if (fileType === 'html') {
         content = document.createElement('iframe');
@@ -230,33 +278,19 @@ function openGallery(filePath) {
     content.onerror = () => {
         console.error('Error loading file:', filePath);
         content.alt = 'Failed to load';
-        content.src = 'path_to_placeholder_image.jpg'; // Use a placeholder image for failed loads
+        content.src = 'path_to_placeholder_image.jpg'; 
     };
 
-    // Create navigation arrows
-    const createArrow = (direction) => {
-        const arrow = document.createElement('a');
-        arrow.innerText = direction === -1 ? '❮' : '❯';
-        arrow.className = `arrow ${direction === -1 ? 'left-arrow' : 'right-arrow'}`;
-        arrow.onclick = () => navigateGallery(direction);
-        return arrow;
-    };
-
-    const leftArrow = createArrow(-1);
-    const rightArrow = createArrow(1);
-
-    // Create a close button to remove the overlay
     const closeButton = document.createElement('button');
     closeButton.innerText = 'X';
     closeButton.className = "closeButton";
     closeButton.onclick = () => {
         document.body.removeChild(galleryOverlay);
-        galleryOverlay = null; // Reset the overlay
-        currentGalleryIndex = -1; // Reset the gallery state
-        currentGalleryFiles = []; // Clear the files list
+        galleryOverlay = null;
+        currentGalleryIndex = -1;
+        currentGalleryFiles = [];
     };
 
-    // Create the comment container and its elements
     const commentContainer = document.createElement('div');
     commentContainer.className = 'comment-container';
 
@@ -267,12 +301,27 @@ function openGallery(filePath) {
     const submitButton = document.createElement('button');
     submitButton.innerText = 'Submit';
     submitButton.className = 'submit-button';
-    submitButton.onclick = () => submitComment(filePath, commentBox.value);
+    submitButton.onclick = () => submitCommentOrMarkup(filePath, commentBox.value);
 
     commentContainer.appendChild(commentBox);
     commentContainer.appendChild(submitButton);
 
-    // Create the container structure
+    const createArrow = (direction) => {
+        const arrow = document.createElement('a');
+        arrow.innerText = direction === -1 ? '⬅' : '⮕';
+        arrow.className = `arrow ${direction === -1 ? 'left-arrow' : 'right-arrow'}`;
+        arrow.onclick = () => navigateGallery(direction);
+        return arrow;
+    };
+
+    const leftArrow = createArrow(-1);
+    const rightArrow = createArrow(1);
+
+    const navContainer = document.createElement('div');
+    navContainer.className = 'nav-container';
+    navContainer.appendChild(leftArrow);
+    navContainer.appendChild(rightArrow);
+
     const contentContainer = document.createElement('div');
     contentContainer.className = 'content-container';
 
@@ -281,24 +330,189 @@ function openGallery(filePath) {
     const rightComments = document.createElement('div');
     rightComments.className = 'right-comments';
 
-    // Append elements to the structure
-    leftContent.appendChild(leftArrow);
     leftContent.appendChild(content);
-    leftContent.appendChild(rightArrow);
-
     rightComments.appendChild(titleContainer);
     rightComments.appendChild(commentContainer);
+    rightComments.appendChild(navContainer);
 
     contentContainer.appendChild(leftContent);
     contentContainer.appendChild(rightComments);
 
     galleryOverlay.appendChild(contentContainer);
-    galleryOverlay.appendChild(closeButton); // Add close button to gallery overlay
+    galleryOverlay.appendChild(closeButton);
 
-    // Adjust content after appending
     adjustGalleryContent();
+
+    if (fileType === 'jpg') {
+        addCanvasOverlay(content);
+    }
 }
 
+
+function submitCommentOrMarkup(filePath, comment) {
+    if (!comment.trim()) {
+        alert('Comment required to submit');
+        return;
+    }
+
+    const canvas = document.getElementById('drawingCanvas');
+    const imageElement = document.querySelector('.gallery-content');
+
+    // Base comment structure
+    const baseComment = {
+        comment: comment,
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+        file_path: filePath
+    };
+
+    if (canvas && imageElement) {
+        const offScreenCanvas = document.createElement('canvas');
+        offScreenCanvas.width = imageElement.naturalWidth;
+        offScreenCanvas.height = imageElement.naturalHeight;
+        const offScreenCtx = offScreenCanvas.getContext('2d');
+
+        offScreenCtx.drawImage(imageElement, 0, 0, offScreenCanvas.width, offScreenCanvas.height); // Changed from drawImage(imageElement, 0, 0)
+        offScreenCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, offScreenCanvas.width, offScreenCanvas.height); // Changed to ensure correct scaling
+
+
+        const dataURL = offScreenCanvas.toDataURL('image/jpeg', 1.0);
+        
+        fetch('/hatpi/api/save_markups', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                fileName: filePath.split('/').pop(),
+                imageData: dataURL,
+                comment: comment,
+                markup_true: '✏️'
+            }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                alert('Markups and comment saved successfully!');
+                loadComments();
+            } else {
+                alert('Failed to save markups and comment.');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving markups:', error);
+            alert('Error saving markups and comment.');
+        });
+    } else {
+        fetch('/hatpi/submit_comment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                fileName: filePath.split('/').pop(), 
+                filePath: filePath, 
+                comment: comment,
+                markup_true: ''  // No markup
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Comment submitted successfully!');
+                loadComments();
+            } else {
+                alert('Failed to submit comment.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error submitting comment.');
+        });
+    }
+}
+
+
+
+function addCanvasOverlay(imageElement) {
+    if (imageElement.complete) {
+        setupCanvas(imageElement);
+    } else {
+        imageElement.onload = () => {
+            setupCanvas(imageElement);
+        };
+    }
+}
+
+function setupCanvas(imageElement) {
+    const canvas = document.createElement('canvas');
+    canvas.id = 'drawingCanvas';
+    canvas.width = imageElement.clientWidth;
+    canvas.height = imageElement.clientHeight;
+
+    const rect = imageElement.getBoundingClientRect();
+    const leftContentRect = imageElement.parentElement.getBoundingClientRect();
+
+    canvas.style.position = 'absolute';
+    canvas.style.top = (rect.top - leftContentRect.top) + 'px';
+    canvas.style.left = (rect.left - leftContentRect.left) + 'px';
+    canvas.style.width = imageElement.clientWidth + 'px';
+    canvas.style.height = imageElement.clientHeight + 'px';
+    canvas.style.pointerEvents = 'auto';
+
+    imageElement.parentElement.style.position = 'relative';
+    imageElement.parentElement.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 2;
+
+    let drawing = false;
+
+    const getCanvasCoordinates = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
+        };
+    };
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (drawingActive) {
+            drawing = true;
+            const { x, y } = getCanvasCoordinates(e);
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+        }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (drawing && drawingActive) {
+            const { x, y } = getCanvasCoordinates(e);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+        drawing = false;
+    });
+
+    canvas.addEventListener('mouseout', () => {
+        drawing = false;
+    });
+}
+
+
+document.addEventListener('keydown', handleKeyDown);
+document.addEventListener('keyup', handleKeyUp);
+document.addEventListener('mousemove', showMagnifier);
 
 function formatTitle(fileName) {
     const parts = fileName.split('_');
@@ -306,7 +520,7 @@ function formatTitle(fileName) {
 
     if (fileName.endsWith('.mp4')) {
         const dateMatch = fileName.match(/(\d{4})(\d{2})(\d{2})/);
-        const ihuMatch = fileName.match(/_(\d+)_/);  // Match the IHU number
+        const ihuMatch = fileName.match(/_(\d+)_/); 
         let description = '';
 
         if (fileName.includes('subframe_stamps_movie')) {
@@ -373,7 +587,6 @@ function formatTitle(fileName) {
 }
 
 function loadPlot(filePath) {
-    // Load the Bokeh library and then open the gallery with the specified file
     const script = document.createElement('script');
     script.src = "https://cdn.bokeh.org/bokeh/release/bokeh-3.1.0.min.js";
     script.onload = () => {
@@ -383,48 +596,25 @@ function loadPlot(filePath) {
     document.head.appendChild(script);
 }
 
-function submitComment(filePath, comment) {
-    // Submit the comment to the server
-    fetch('/hatpi/submit_comment', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ fileName: filePath.split('/').pop(), filePath, comment }),
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Comment submitted successfully!');
-            loadComments();
-        } else {
-            alert('Failed to submit comment.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error submitting comment.');
-    });
-}
-
 function loadComments() {
-    // Load comments from the server and display them
-    fetch('/path/to/comments.json')
+    fetch('/hatpi/comments.json')
         .then(response => response.json())
         .then(data => {
             const commentsContainer = document.querySelector('.comments-container');
-            commentsContainer.innerHTML = ''; // Clear existing comments
+            commentsContainer.innerHTML = '';
 
-            // Convert comments object to array and sort by timestamp
             const commentsArray = Object.entries(data).map(([key, comment]) => ({
                 ...comment,
                 uniqueKey: key
             }));
             commentsArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-            // Create and append comment elements to the comments container
             for (const comment of commentsArray) {
                 const filename = comment.file_path.split('/').pop();
+                const iconDiv = document.createElement('div');
+                iconDiv.className = 'markup-icon';
+                iconDiv.innerText = comment.markup_true || '';
+
                 const commentItem = document.createElement('div');
                 commentItem.className = 'comment-item';
                 commentItem.innerHTML = `
@@ -440,13 +630,16 @@ function loadComments() {
                         <p>${comment.comment}</p>
                     </div>
                 `;
+
+                const filenameElement = commentItem.querySelector('.comment-filename');
+                filenameElement.insertBefore(iconDiv, filenameElement.firstChild);
+
                 commentsContainer.appendChild(commentItem);
             }
         })
-        .catch(error => console.error('Error loading comments:', error)); // Log any errors that occur during the fetch process
+        .catch(error => console.error('Error loading comments:', error));
 }
 
-// Load comments when the document is fully loaded
 document.addEventListener('DOMContentLoaded', () => {
     loadComments();
 });
@@ -480,7 +673,6 @@ function filterImages(filter) {
     imageItems.forEach(item => item.style.display = 'none');
     filteredItems.forEach(item => item.style.display = 'flex');
 
-    // Apply alternating colors
     applyAlternatingColors('.images');
 }
 
@@ -513,7 +705,6 @@ function filterHtmlFiles(filter) {
     htmlFileItems.forEach(item => item.style.display = 'none');
     filteredItems.forEach(item => item.style.display = 'flex');
 
-    // Apply alternating colors
     applyAlternatingColors('.plot-list');
 }
 
@@ -558,12 +749,9 @@ function filterMovies(filter) {
     movieItems.forEach(item => item.style.display = 'none');
     filteredItems.forEach(item => item.style.display = 'flex');
 
-    // Apply alternating colors
     applyAlternatingColors('.movies');
 }
 
-
-// Ensure the gallery overlay content scales properly
 function adjustGalleryContent() {
     const galleryContent = document.querySelector('.gallery-content');
     const overlayIframe = document.querySelector('.overlay-iframe');
@@ -580,8 +768,7 @@ function adjustGalleryContent() {
     }
 }
 
-// Attach the adjustGalleryContent function to the window resize event
 window.addEventListener('resize', adjustGalleryContent);
-
-// Call adjustGalleryContent once when the script is loaded to ensure initial sizing
 adjustGalleryContent();
+createMagnifier();
+

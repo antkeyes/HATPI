@@ -122,7 +122,6 @@ a:hover {
     background-color: #21262E;
 }
 
-
 .file-item {
     padding-left: 10px;
     padding-right: 10px;
@@ -180,7 +179,8 @@ a:hover {
 
 .comment-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
+    align-items: center;
     margin-bottom: 5px;
 }
 
@@ -192,11 +192,12 @@ a:hover {
     color: #8E97A1;
     font-size: 0.9em;
     font-family: monospace;
+    margin-left: auto;
 }
 
 .comment-body {
     margin-top: 5px;
-    margin-left: 10px;
+    margin-left: 15px;
     padding-left: 5px;
     border-left: 1px solid #8E97A1; /* Bar on the left */
     font-family: monospace !important;
@@ -222,7 +223,6 @@ a:hover {
 a.back-to-home:hover {
     color: #2980b9;
 }
-
 
 .pill-container-unique {
     display: flex;
@@ -320,6 +320,31 @@ a.back-to-home:hover {
     margin-right: 20px; /* Add this line for right margin */
 }
 
+/* Add new styles for navigation buttons */
+.nav-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 20px; /* Add space below the comment container */
+}
+
+.nav-container .arrow {
+    margin: 0 20px; /* Increase horizontal margin to add space between arrows */
+    cursor: pointer;
+    width: 50px; /* Set width of the circle */
+    height: 50px; /* Set height of the circle */
+    background-color: #333; /* Background color of the circle */
+    border-radius: 50%; /* Make the background a circle */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.nav-container .arrow:hover {
+    color: #87689F;
+}
+
 
 .gallery-title {
     color: #8E97A1;
@@ -335,6 +360,7 @@ a.back-to-home:hover {
 
 .gallery-title-container {
     margin-bottom: 10px;
+    align-self: flex-start;
 }
 
 .gallery-title-line {
@@ -351,9 +377,7 @@ a.back-to-home:hover {
     color: white;
     transition: color 0.3s;
     cursor: pointer;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
+    position: relative; /* Changed to relative for better positioning */
 }
 
 .arrow:hover {
@@ -455,7 +479,6 @@ a.back-to-home:hover {
     background-color: #a787b3;
 }
 
-
 /* Styles for folder list on the home page */
 .folder-list {
     list-style-type: none;
@@ -471,7 +494,6 @@ a.back-to-home:hover {
 .folder-name {
     font-weight: bold;
 }
-
 
 /* background stars animation */
 @keyframes move-background {
@@ -667,3 +689,32 @@ a.back-to-home:hover {
 .hidden {
     display: none;
 }
+
+/* magnifying in .jpg view */
+.magnifier {
+    position: absolute;
+    border: 3px solid #000;
+    /* Remove border-radius to make it a square */
+    cursor: none;
+    pointer-events: none;
+    display: none;
+    width: 400px;
+    height: 400px;
+    background-repeat: no-repeat;
+    z-index: 1100;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.hide-cursor {
+    cursor: none;
+}
+
+/* pencil logo in comments-header on home page */
+.markup-icon {
+    display: inline-block;
+    width: auto;
+    padding-right: 5px; 
+    font-size: 1.2em; 
+    vertical-align: middle;
+}
+
