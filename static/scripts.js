@@ -317,7 +317,7 @@ function openGallery(filePath) {
 
     const createArrow = (direction) => {
         const arrow = document.createElement('a');
-        arrow.innerText = direction === -1 ? '⬅' : '⮕';
+        arrow.innerText = direction === -1 ? '❮' : '❯';
         arrow.className = `arrow ${direction === -1 ? 'left-arrow' : 'right-arrow'}`;
         arrow.onclick = () => navigateGallery(direction);
         return arrow;
