@@ -198,9 +198,11 @@ a:hover {
 .comment-body {
     margin-top: 5px;
     margin-left: 15px;
+    /* margin-right: 75px; */
     padding-left: 5px;
     border-left: 1px solid #8E97A1; /* Bar on the left */
     font-family: monospace !important;
+    position: relative;
 }
 
 /* Unique pill container and button styling */
@@ -718,3 +720,41 @@ a.back-to-home:hover {
     vertical-align: middle;
 }
 
+.instructions-container {
+    margin-top: 50px;
+    text-align: left;
+    color: #d4d4d4;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+}
+
+.instructions-container p {
+    margin: 5px 0;
+}
+
+/* delete comment button */
+
+.delete-comment-button {
+    position: absolute;
+    right: 0px;
+    /* top: 45px; */
+    bottom: 0px;
+    height: 25px;
+    width: 60px;
+    background-color: #21262E;
+    color: #D4D4D4;
+    border: 1px solid #FF6B6B;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 15px;
+    text-align: center;
+}
+
+.comment-item {
+    position: relative; 
+}
+
+.comment-body p {
+    margin-right: 75px;
+}

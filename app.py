@@ -76,9 +76,13 @@ def format_filename(value):
             type_part = 'bias'
         elif 'dark' in parts[0]:
             type_part = 'dark'
-        elif 'flat' in parts[0] and 'ss' in parts[-1]:
+        elif 'masterglobflat' in parts[0] and 'ss' in parts[-1]:
+            type_part = 'globflat ss'
+        elif 'masterglobflat' in parts[0] and 'ls' in parts[-1]:
+            type_part = 'globflat ls'
+        elif 'masterflat' in parts[0] and 'ss' in parts[-1]:
             type_part = 'flat ss'
-        elif 'flat' in parts[0] and 'ls' in parts[-1]:
+        elif 'masterflat' in parts[0] and 'ls' in parts[-1]:
             type_part = 'flat ls'
         else:
             type_part = 'unknown'
@@ -301,6 +305,7 @@ def submit_comment():
     file_path = data.get('filePath')
     comment = data.get('comment')
     markup_true = data.get('markup_true', '')
+    
     if file_name and comment:
         comments = load_comments()
         unique_key = '%s_%s' % (file_name, datetime.datetime.now().strftime('%Y%m%d%H%M%S%f'))
