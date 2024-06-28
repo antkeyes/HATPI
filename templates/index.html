@@ -50,7 +50,7 @@
         <h2 class="comments-title">Comments</h2>
         <div class="comments-container">
             {% for unique_key, comment in comments.items() %}
-                <div class="comment-item">
+                <div class="comment-item" data-comment-id="{{ unique_key }}">
                     <div class="comment-header">
                         {% if comment.markup_true %}
                             <div class="markup-icon">{{ comment.markup_true }}</div>
@@ -64,7 +64,7 @@
                     </div>
                     <div class="comment-body">
                         <p>{{ comment.comment }}</p>
-                        <button class="delete-comment-button">Delete</button>
+                        <button class="delete-comment-button" onclick="deleteComment('{{ unique_key }}')">Delete</button>
                     </div>
                 </div>
             {% endfor %}

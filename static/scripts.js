@@ -124,6 +124,7 @@ let currentGalleryFiles = [];
 let galleryOverlay = null;
 let magnifierActive = false;
 let drawingActive = false;
+let drawingOccurred = false; // Flag to track drawing on the canvas
 
 function navigateGallery(direction) {
     currentGalleryIndex = (currentGalleryIndex + direction + currentGalleryFiles.length) % currentGalleryFiles.length;
@@ -242,6 +243,14 @@ function openGallery(filePath) {
     const formattedTitle = formatTitle(fileName);
     const titleContainer = document.createElement('div');
     titleContainer.className = 'gallery-title-container';
+    const instructionsContainer = document.createElement('div');
+    instructionsContainer.className = 'instructions-container';
+    instructionsContainer.style.textAlign = 'left'; // Add this line to align text left
+    instructionsContainer.innerHTML = `
+        <p>Press and hold 'z' to zoom</p>
+        <p>Press and hold 'd' to draw</p>
+    `;
+
 
     formattedTitle.forEach(line => {
         const lineElement = document.createElement('div');
@@ -334,6 +343,7 @@ function openGallery(filePath) {
     rightComments.appendChild(titleContainer);
     rightComments.appendChild(commentContainer);
     rightComments.appendChild(navContainer);
+    rightComments.appendChild(instructionsContainer);
 
     contentContainer.appendChild(leftContent);
     contentContainer.appendChild(rightComments);
@@ -348,35 +358,26 @@ function openGallery(filePath) {
     }
 }
 
-
 function submitCommentOrMarkup(filePath, comment) {
     if (!comment.trim()) {
-        alert('Comment required to submit');
+        alert('Comment required to submit.');
         return;
     }
 
     const canvas = document.getElementById('drawingCanvas');
     const imageElement = document.querySelector('.gallery-content');
 
-    // Base comment structure
-    const baseComment = {
-        comment: comment,
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        file_path: filePath
-    };
-
-    if (canvas && imageElement) {
+    if (drawingOccurred && canvas && imageElement) { // Check if drawing occurred
         const offScreenCanvas = document.createElement('canvas');
         offScreenCanvas.width = imageElement.naturalWidth;
         offScreenCanvas.height = imageElement.naturalHeight;
         const offScreenCtx = offScreenCanvas.getContext('2d');
 
-        offScreenCtx.drawImage(imageElement, 0, 0, offScreenCanvas.width, offScreenCanvas.height); // Changed from drawImage(imageElement, 0, 0)
-        offScreenCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, offScreenCanvas.width, offScreenCanvas.height); // Changed to ensure correct scaling
-
+        offScreenCtx.drawImage(imageElement, 0, 0, offScreenCanvas.width, offScreenCanvas.height);
+        offScreenCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, offScreenCanvas.width, offScreenCanvas.height);
 
         const dataURL = offScreenCanvas.toDataURL('image/jpeg', 1.0);
-        
+
         fetch('/hatpi/api/save_markups', {
             method: 'POST',
             headers: {
@@ -399,6 +400,7 @@ function submitCommentOrMarkup(filePath, comment) {
             if (data.success) {
                 alert('Markups and comment saved successfully!');
                 loadComments();
+                resetDrawingOccurred(); // Reset flag after successful submission
             } else {
                 alert('Failed to save markups and comment.');
             }
@@ -408,35 +410,39 @@ function submitCommentOrMarkup(filePath, comment) {
             alert('Error saving markups and comment.');
         });
     } else {
+        // Submit comment only
         fetch('/hatpi/submit_comment', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
-                fileName: filePath.split('/').pop(), 
-                filePath: filePath, 
-                comment: comment,
-                markup_true: ''  // No markup
-            }),
+            body: JSON.stringify({ fileName: filePath.split('/').pop(), filePath, comment }),
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 alert('Comment submitted successfully!');
                 loadComments();
+                resetDrawingOccurred(); // Reset flag after successful submission
             } else {
                 alert('Failed to submit comment.');
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Error submitting comment:', error);
             alert('Error submitting comment.');
         });
     }
 }
 
-
+function resetDrawingOccurred() {
+    drawingOccurred = false; // Reset the drawing flag
+}
 
 function addCanvasOverlay(imageElement) {
     if (imageElement.complete) {
@@ -486,6 +492,7 @@ function setupCanvas(imageElement) {
     canvas.addEventListener('mousedown', (e) => {
         if (drawingActive) {
             drawing = true;
+            drawingOccurred = true; // Set the flag when drawing starts
             const { x, y } = getCanvasCoordinates(e);
             ctx.beginPath();
             ctx.moveTo(x, y);
@@ -508,7 +515,6 @@ function setupCanvas(imageElement) {
         drawing = false;
     });
 }
-
 
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
@@ -644,6 +650,37 @@ document.addEventListener('DOMContentLoaded', () => {
     loadComments();
 });
 
+function deleteComment(commentId) {
+    fetch('/hatpi/delete_comment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ commentId: commentId }),
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Remove the comment element from the DOM
+            const commentElement = document.querySelector(`.comment-item[data-comment-id='${commentId}']`);
+            if (commentElement) {
+                commentElement.remove();
+            }
+        } else {
+            alert('Failed to delete comment.');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting comment:', error);
+        alert('Error deleting comment.');
+    });
+}
+
 function filterImages(filter) {
     const filterButtons = document.querySelectorAll('#image-filters .filter-button');
     filterButtons.forEach(button => {
@@ -661,7 +698,12 @@ function filterImages(filter) {
     const imageItems = document.querySelectorAll('.images .file-item');
     const filteredItems = Array.from(imageItems).filter(item => {
         const filename = item.getAttribute('data-filename').toLowerCase();
-        return filter === 'all' || filename.includes(filter);
+        if (filter === 'all') return true;
+        if (filter === 'flat-ss') return filename.startsWith('masterflat') && filename.endsWith('ss.jpg');
+        if (filter === 'flat-ls') return filename.startsWith('masterflat') && filename.endsWith('ls.jpg');
+        if (filter === 'globflat-ss') return filename.startsWith('masterglobflat') && filename.endsWith('ss.jpg');
+        if (filter === 'globflat-ls') return filename.startsWith('masterglobflat') && filename.endsWith('ls.jpg');
+        return filename.includes(filter);
     });
 
     filteredItems.sort((a, b) => {
@@ -771,4 +813,3 @@ function adjustGalleryContent() {
 window.addEventListener('resize', adjustGalleryContent);
 adjustGalleryContent();
 createMagnifier();
-

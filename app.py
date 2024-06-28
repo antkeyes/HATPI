@@ -319,6 +319,20 @@ def submit_comment():
         return jsonify({'success': True})
     return jsonify({'success': False})
 
+@app.route('/delete_comment', methods=['POST'])
+def delete_comment():
+    data = request.get_json()
+    comment_id = data.get('commentId')
+    
+    if comment_id:
+        comments = load_comments()
+        if comment_id in comments:
+            del comments[comment_id]
+            save_comments(comments)
+            return jsonify({'success': True})
+    return jsonify({'success': False})
+
+
 def get_creation_date(file_path):
     return datetime.datetime.fromtimestamp(os.path.getctime(file_path)).strftime('%Y-%m-%d %H:%M:%S')
 
