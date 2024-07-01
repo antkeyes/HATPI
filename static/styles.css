@@ -272,6 +272,13 @@ a.back-to-home:hover {
     background-color: #87689E;
 }
 
+#additional-buttons {
+    display: flex;
+    margin-bottom: 20px;
+    margin-top: 50px;
+    margin-right: 20%;
+}
+
 .tab-content {
     display: none;
 }
@@ -591,6 +598,7 @@ a.back-to-home:hover {
     display: flex;
     flex-direction: column;
     margin-top: 20px;
+    position: relative;
 }
 
 /* Grid item styling for IHU */
@@ -603,14 +611,36 @@ a.back-to-home:hover {
     height: 45px;
     font-size: 1.2em;
     font-weight: bold;
-    margin: 2px;
+    /* margin: 2px; */
     box-sizing: border-box;
 }
+
+/* Keep gap for the Actual grid */
+#grid-container-ihu-sequential .grid-item-ihu {
+    margin: 2px;
+}
+
+#grid-container-ihu-sequential .grid-row-ihu {
+    gap: 3px; /* Adjust as needed */
+}
+
+/* Center the Actual grid container */
+#grid-container-ihu-actual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 480px;
+    height: 600px;
+    margin: 0 auto;
+    position: relative;
+    /* background-color: red; */
+} 
+
 
 /* Grid row styling for IHU */
 .grid-row-ihu {
     display: grid;
-    gap: 3px;
+    /* gap: 3px; */
     grid-template-columns: repeat(var(--columns), 45px);
     justify-content: start;
 }

@@ -18,8 +18,13 @@
         <!-- Replace the "Dates" title with pill buttons -->
         <div class="pills-container">
             <div class="pill-container-unique">
-                <button class="pill-button-unique active" onclick="showTab('dates')">Dates</button>
-                <button class="pill-button-unique" onclick="showTab('ihu')">IHU</button>
+                <button class="pill-button-unique active" onclick="showTab('dates', event)">Dates</button>
+                <button class="pill-button-unique" onclick="showTab('ihu', event)">IHU</button>
+            </div>
+            <!-- New buttons for "Actual" and "Sequential" -->
+            <div id="additional-buttons" style="display: none;">
+                <button class="pill-button-unique" onclick="showActual(event)">Actual</button>
+                <button class="pill-button-unique" onclick="showSequential(event)">Sequential</button>
             </div>
         </div>
 
@@ -39,11 +44,12 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- IHU content -->
-            <div id="ihu" class="tab-content">
-                <div id="grid-container-ihu" class="grid-container-ihu"></div>
-            </div>
+        <!-- IHU content -->
+        <div id="ihu" class="tab-content">
+            <div id="grid-container-ihu-sequential" class="grid-container-ihu" style="display: none;"></div>
+            <div id="grid-container-ihu-actual" class="grid-container-ihu" style="display: none;"></div>
         </div>
 
         <!-- Comments title -->
@@ -69,10 +75,11 @@
                 </div>
             {% endfor %}
         </div>
+    </div>
 
     <script src="/hatpi/static/scripts.js"></script>
     <script>
-        function showTab(tabId) {
+        function showTab(tabId, event) {
             // Hide all tab contents
             var tabContents = document.getElementsByClassName('tab-content');
             for (var i = 0; i < tabContents.length; i++) {
@@ -88,47 +95,264 @@
             // Activate the selected tab and its corresponding button
             document.getElementById(tabId).classList.add('active');
             event.target.classList.add('active');
-        }
 
-    // JavaScript to create the IHU grid
-    document.addEventListener('DOMContentLoaded', function() {
-        const rowColors = ["#D5A6BE", "#B4A7D6", "#CEE1F3", "#6FA7DC", "#77A5AF", "#93C47D", "#F9E499", "#F5B26B", "#E06566", "#CC4125"];
-        const rowColumns = [3, 7, 8, 9, 9, 9, 8, 6, 4, 1];
-        const gridContainer = document.getElementById('grid-container-ihu');
-
-        let textIndex = 64;  // Starting text index
-        for (let i = 0; i < rowColumns.length; i++) {
-            const row = document.createElement('div');
-            row.className = 'grid-row-ihu';
-            row.style.display = 'grid';
-            row.style.gridTemplateColumns = `repeat(${rowColumns[i]}, 45px)`;
-            row.style.justifyContent = 'center';
-
-            const cells = [];
-            for (let j = 0; j < rowColumns[i]; j++) {
-                const cell = document.createElement('div');
-                cell.className = 'grid-item-ihu';
-                cell.style.backgroundColor = rowColors[i];
-
-                const button = document.createElement('button');
-                button.textContent = textIndex;
-
-                // Use an IIFE to create a closure that captures the current value of textIndex
-                (function(index) {
-                    button.addEventListener('click', function() {
-                        const cellNumber = index.toString().padStart(2, '0');
-                        window.location.href = '/hatpi/ihu/ihu-' + cellNumber;
-                    });
-                })(textIndex);
-
-                cell.appendChild(button);
-                textIndex--;
-                cells.unshift(cell); // Add cell to the beginning of the array
+            // Hide the container div when IHU tab is active
+            var containerDiv = document.querySelector('.container');
+            var additionalButtons = document.getElementById('additional-buttons');
+            if (tabId === 'ihu') {
+                containerDiv.style.display = 'none';
+                additionalButtons.style.display = 'flex';
+                showSequential(event);  // Default to showing the Sequential grid
+            } else {
+                containerDiv.style.display = 'block';
+                additionalButtons.style.display = 'none';
+                document.getElementById('grid-container-ihu-sequential').style.display = 'none';
+                document.getElementById('grid-container-ihu-actual').style.display = 'none';
             }
-            cells.forEach(cell => row.appendChild(cell)); // Append cells to the row
-            gridContainer.appendChild(row); // Append row to the grid container
         }
-    });
+
+        function showActual(event) {
+            document.getElementById('grid-container-ihu-sequential').style.display = 'none';
+            document.getElementById('grid-container-ihu-actual').style.display = 'grid';
+            event.target.classList.add('active');
+            document.querySelector('#additional-buttons .pill-button-unique:not([onclick="showActual(event)"])').classList.remove('active');
+        }
+
+        function showSequential(event) {
+            document.getElementById('grid-container-ihu-sequential').style.display = 'grid';
+            document.getElementById('grid-container-ihu-actual').style.display = 'none';
+            event.target.classList.add('active');
+            document.querySelector('#additional-buttons .pill-button-unique:not([onclick="showSequential(event)"])').classList.remove('active');
+        }
+
+        // JavaScript to create the IHU grids
+        document.addEventListener('DOMContentLoaded', function() {
+            const sequentialRowColors = ["#D5A6BE", "#B4A7D6", "#CEE1F3", "#6FA7DC", "#77A5AF", "#93C47D", "#F9E499", "#F5B26B", "#E06566", "#CC4125"];
+            const sequentialRowColumns = [3, 7, 8, 9, 9, 9, 8, 6, 4, 1];
+            const sequentialGridContainer = document.getElementById('grid-container-ihu-sequential');
+
+            let textIndex = 64;  // Starting text index
+            for (let i = 0; i < sequentialRowColumns.length; i++) {
+                const row = document.createElement('div');
+                row.className = 'grid-row-ihu';
+                row.style.display = 'grid';
+                row.style.gridTemplateColumns = `repeat(${sequentialRowColumns[i]}, 45px)`;
+                row.style.justifyContent = 'center';
+
+                const cells = [];
+                for (let j = 0; j < sequentialRowColumns[i]; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-item-ihu';
+                    cell.style.backgroundColor = sequentialRowColors[i];
+
+                    const button = document.createElement('button');
+                    button.textContent = textIndex;
+
+                    // Use an IIFE to create a closure that captures the current value of textIndex
+                    (function(index) {
+                        button.addEventListener('click', function() {
+                            const cellNumber = index.toString().padStart(2, '0');
+                            window.location.href = '/hatpi/ihu/ihu-' + cellNumber;
+                        });
+                    })(textIndex);
+
+                    cell.appendChild(button);
+                    textIndex--;
+                    cells.unshift(cell); // Add cell to the beginning of the array
+                }
+                cells.forEach(cell => row.appendChild(cell)); // Append cells to the row
+                sequentialGridContainer.appendChild(row); // Append row to the grid container
+            }
+
+        // Placeholder grid for "Actual"
+        const actualGridContainer = document.getElementById('grid-container-ihu-actual');
+
+        // Function to create merged cells
+        function createMergedButton(top, left, width, height, text, color, href) {
+            const button = document.createElement('button');
+            button.textContent = text;
+            button.style.position = 'absolute';
+            button.style.top = top + 'px';
+            button.style.left = left + 'px';
+            button.style.width = width + 'px';
+            button.style.height = height + 'px';
+            button.style.backgroundColor = color;
+            button.style.border = '1px solid #000';
+            button.style.fontSize = '1em';
+            button.style.cursor = 'pointer';
+            button.addEventListener('click', () => {
+                window.location.href = href;
+            });
+            return button;
+        }
+
+        // Add merged buttons to the Actual grid
+        actualGridContainer.style.position = 'relative';
+
+        // Example merged buttons (top, left, width, height)
+        const mergedButton61 = createMergedButton(0, 40, 40, 40, '61', '#B4A7D5', '/hatpi/ihu/ihu-61');
+        const mergedButton55 = createMergedButton(0, 400, 40, 40, '55', '#B4A7D5', '/hatpi/ihu/ihu-55');
+
+        const mergedButton53 = createMergedButton(60, 40, 40, 40, '53', '#D0E2F3', '/hatpi/ihu/ihu-53');
+        const mergedButton60 = createMergedButton(60, 100, 40, 40, '60', '#B4A7D5', '/hatpi/ihu/ihu-60');
+        const mergedButton59 = createMergedButton(60, 160, 40, 40, '59', '#B4A7D5', '/hatpi/ihu/ihu-59');
+        const mergedButton42 = createMergedButton(60, 220, 40, 40, '42', '#6D9EEB', '/hatpi/ihu/ihu-42');
+        const mergedButton57 = createMergedButton(60, 280, 40, 40, '57', '#B4A7D5', '/hatpi/ihu/ihu-57');
+        const mergedButton56 = createMergedButton(60, 340, 40, 40, '56', '#B4A7D5', '/hatpi/ihu/ihu-56');
+        const mergedButton33 = createMergedButton(60, 400, 40, 40, '33', '#76A5AE', '/hatpi/ihu/ihu-33');
+        
+        const mergedButton40 = createMergedButton(120, 100, 40, 40, '40', '#6D9EEB', '/hatpi/ihu/ihu-40');
+        const mergedButton64 = createMergedButton(120, 160, 40, 40, '64', '#C27BA0', '/hatpi/ihu/ihu-64');
+        const mergedButton63 = createMergedButton(120, 220, 40, 40, '63', '#C27BA0', '/hatpi/ihu/ihu-63');
+        const mergedButton62 = createMergedButton(120, 280, 40, 40, '62', '#C27BA0', '/hatpi/ihu/ihu-62');
+        const mergedButton58 = createMergedButton(120, 340, 40, 40, '58', '#B4A7D5', '/hatpi/ihu/ihu-58');
+
+        const mergedButton51 = createMergedButton(100, 0, 40, 40, '51', '#D0E2F3', '/hatpi/ihu/ihu-51');
+        const mergedButton35 = createMergedButton(160, 0, 40, 40, '35', '#76A5AE', '/hatpi/ihu/ihu-35');
+        const mergedButton45 = createMergedButton(220, 0, 40, 40, '45', '#6D9EEB', '/hatpi/ihu/ihu-45');
+        const mergedButton26 = createMergedButton(280, 0, 40, 40, '26', '#93C47D', '/hatpi/ihu/ihu-26');
+        const mergedButton36 = createMergedButton(340, 0, 40, 40, '36', '#76A5AE', '/hatpi/ihu/ihu-36');
+        const mergedButton27 = createMergedButton(400, 0, 40, 40, '27', '#93C47D', '/hatpi/ihu/ihu-27');
+        const mergedButton18 = createMergedButton(460, 0, 40, 40, '18', '#ffe598', '/hatpi/ihu/ihu-18');
+
+        const mergedButton54 = createMergedButton(160, 60, 40, 40, '54', '#D0E2F3', '/hatpi/ihu/ihu-54');
+        const mergedButton46 = createMergedButton(220, 60, 40, 40, '46', '#6D9EEB', '/hatpi/ihu/ihu-46');
+        const mergedButton37 = createMergedButton(280, 60, 40, 40, '37', '#76A5AE', '/hatpi/ihu/ihu-37');
+        const mergedButton28 = createMergedButton(340, 60, 40, 40, '28', '#93C47D', '/hatpi/ihu/ihu-28');
+        const mergedButton19 = createMergedButton(400, 60, 40, 40, '19', '#ffe598', '/hatpi/ihu/ihu-19');
+
+        const mergedButton47 = createMergedButton(160, 380, 40, 40, '47', '#D0E2F3', '/hatpi/ihu/ihu-47');
+        const mergedButton38 = createMergedButton(220, 380, 40, 40, '38', '#6D9EEB', '/hatpi/ihu/ihu-38');
+        const mergedButton29 = createMergedButton(280, 380, 40, 40, '29', '#76A5AE', '/hatpi/ihu/ihu-29');
+        const mergedButton20 = createMergedButton(340, 380, 40, 40, '20', '#93C47D', '/hatpi/ihu/ihu-20');
+        const mergedButton12 = createMergedButton(400, 380, 40, 40, '12', '#ffe598', '/hatpi/ihu/ihu-12');
+
+        const mergedButton11 = createMergedButton(440, 100, 40, 40, '11', '#F6B26B', '/hatpi/ihu/ihu-11');
+        const mergedButton5 = createMergedButton(440, 160, 40, 40, '5', '#E06666', '/hatpi/ihu/ihu-05');
+        const mergedButton24 = createMergedButton(440, 220, 40, 40, '24', '#93C47D', '/hatpi/ihu/ihu-24');
+        const mergedButton2 = createMergedButton(440, 280, 40, 40, '2', '#E06666', '/hatpi/ihu/ihu-02');
+        const mergedButton6 = createMergedButton(440, 340, 40, 40, '6', '#F6B26B', '/hatpi/ihu/ihu-06');
+
+        const mergedButton48 = createMergedButton(100, 440, 40, 40, '48', '#D0E2F3', '/hatpi/ihu/ihu-48');
+        const mergedButton31 = createMergedButton(160, 440, 40, 40, '31', '#76A5AE', '/hatpi/ihu/ihu-31');
+        const mergedButton39 = createMergedButton(220, 440, 40, 40, '39', '#6D9EEB', '/hatpi/ihu/ihu-39');
+        const mergedButton22 = createMergedButton(280, 440, 40, 40, '22', '#93C47D', '/hatpi/ihu/ihu-22');
+        const mergedButton30 = createMergedButton(340, 440, 40, 40, '30', '#76A5AE', '/hatpi/ihu/ihu-30');
+        const mergedButton21 = createMergedButton(400, 440, 40, 40, '21', '#93C47D', '/hatpi/ihu/ihu-21');
+        const mergedButton13 = createMergedButton(460, 440, 40, 40, '13', '#ffe598', '/hatpi/ihu/ihu-13');
+
+        const mergedButton10 = createMergedButton(500, 40, 40, 40, '10', '#F6B26B', '/hatpi/ihu/ihu-10');
+        const mergedButton9 = createMergedButton(500, 100, 40, 40, '9', '#F6B26B', '/hatpi/ihu/ihu-09');
+        const mergedButton4 = createMergedButton(500, 160, 40, 40, '4', '#E06666', '/hatpi/ihu/ihu-04');
+        const mergedButton1 = createMergedButton(500, 220, 40, 40, '1', '#CD4025', '/hatpi/ihu/ihu-01');
+        const mergedButton3 = createMergedButton(500, 280, 40, 40, '3', '#E06666', '/hatpi/ihu/ihu-03');
+        const mergedButton8 = createMergedButton(500, 340, 40, 40, '8', '#F6B26B', '/hatpi/ihu/ihu-08');
+        const mergedButton7 = createMergedButton(500, 400, 40, 40, '7', '#F6B26B', '/hatpi/ihu/ihu-07');
+
+        const mergedButton44 = createMergedButton(180, 160, 40, 40, '44', '#6D9EEB', '/hatpi/ihu/ihu-44');
+        const mergedButton50 = createMergedButton(180, 220, 40, 40, '50', '#D0E2F3', '/hatpi/ihu/ihu-50');
+        const mergedButton49 = createMergedButton(180, 280, 40, 40, '49', '#D0E2F3', '/hatpi/ihu/ihu-49');
+
+        const mergedButton52 = createMergedButton(220, 120, 40, 40, '52', '#D0E2F3', '/hatpi/ihu/ihu-52');
+        const mergedButton43 = createMergedButton(280, 120, 40, 40, '43', '#6D9EEB', '/hatpi/ihu/ihu-43');
+        const mergedButton25 = createMergedButton(340, 120, 40, 40, '25', '#93C47D', '/hatpi/ihu/ihu-25');
+
+        const mergedButton17 = createMergedButton(380, 160, 40, 40, '17', '#ffe598', '/hatpi/ihu/ihu-17');
+        const mergedButton16 = createMergedButton(380, 220, 40, 40, '16', '#ffe598', '/hatpi/ihu/ihu-16');
+        const mergedButton15 = createMergedButton(380, 280, 40, 40, '15', '#ffe598', '/hatpi/ihu/ihu-15');
+
+        const mergedButton41 = createMergedButton(220, 320, 40, 40, '41', '#6D9EEB', '/hatpi/ihu/ihu-41');
+        const mergedButton23 = createMergedButton(280, 320, 40, 40, '23', '#93C47D', '/hatpi/ihu/ihu-23');
+        const mergedButton14 = createMergedButton(340, 320, 40, 40, '14', '#ffe598', '/hatpi/ihu/ihu-14');
+
+        const mergedButton34 = createMergedButton(560, 140, 40, 40, '34', '#76A5AE', '/hatpi/ihu/ihu-34');
+        const mergedButton32 = createMergedButton(560, 300, 40, 40, '32', '#76A5AE', '/hatpi/ihu/ihu-32');
+
+        actualGridContainer.appendChild(mergedButton61);
+        actualGridContainer.appendChild(mergedButton55);
+
+        actualGridContainer.appendChild(mergedButton53);
+        actualGridContainer.appendChild(mergedButton60);
+        actualGridContainer.appendChild(mergedButton59);
+        actualGridContainer.appendChild(mergedButton42);
+        actualGridContainer.appendChild(mergedButton57);
+        actualGridContainer.appendChild(mergedButton56);
+        actualGridContainer.appendChild(mergedButton33);
+
+        actualGridContainer.appendChild(mergedButton40);
+        actualGridContainer.appendChild(mergedButton64);
+        actualGridContainer.appendChild(mergedButton63);
+        actualGridContainer.appendChild(mergedButton62);
+        actualGridContainer.appendChild(mergedButton58);
+
+        actualGridContainer.appendChild(mergedButton51);
+        actualGridContainer.appendChild(mergedButton35);
+        actualGridContainer.appendChild(mergedButton45);
+        actualGridContainer.appendChild(mergedButton26);
+        actualGridContainer.appendChild(mergedButton36);
+        actualGridContainer.appendChild(mergedButton27);
+        actualGridContainer.appendChild(mergedButton18);
+
+        actualGridContainer.appendChild(mergedButton54);
+        actualGridContainer.appendChild(mergedButton46);
+        actualGridContainer.appendChild(mergedButton37);
+        actualGridContainer.appendChild(mergedButton28);
+        actualGridContainer.appendChild(mergedButton19);
+
+        actualGridContainer.appendChild(mergedButton47);
+        actualGridContainer.appendChild(mergedButton38);
+        actualGridContainer.appendChild(mergedButton29);
+        actualGridContainer.appendChild(mergedButton20);
+        actualGridContainer.appendChild(mergedButton12);
+
+        actualGridContainer.appendChild(mergedButton11);
+        actualGridContainer.appendChild(mergedButton5);
+        actualGridContainer.appendChild(mergedButton24);
+        actualGridContainer.appendChild(mergedButton2);
+        actualGridContainer.appendChild(mergedButton6);
+
+        actualGridContainer.appendChild(mergedButton48);
+        actualGridContainer.appendChild(mergedButton31);
+        actualGridContainer.appendChild(mergedButton39);
+        actualGridContainer.appendChild(mergedButton22);
+        actualGridContainer.appendChild(mergedButton30);
+        actualGridContainer.appendChild(mergedButton21);
+        actualGridContainer.appendChild(mergedButton13);
+
+        actualGridContainer.appendChild(mergedButton10);
+        actualGridContainer.appendChild(mergedButton9);
+        actualGridContainer.appendChild(mergedButton4);
+        actualGridContainer.appendChild(mergedButton1);
+        actualGridContainer.appendChild(mergedButton3);
+        actualGridContainer.appendChild(mergedButton8);
+        actualGridContainer.appendChild(mergedButton7);
+
+        actualGridContainer.appendChild(mergedButton44);
+        actualGridContainer.appendChild(mergedButton50);
+        actualGridContainer.appendChild(mergedButton49);
+
+        actualGridContainer.appendChild(mergedButton52);
+        actualGridContainer.appendChild(mergedButton43);
+        actualGridContainer.appendChild(mergedButton25);
+
+        actualGridContainer.appendChild(mergedButton17);
+        actualGridContainer.appendChild(mergedButton16);
+        actualGridContainer.appendChild(mergedButton15);
+
+        actualGridContainer.appendChild(mergedButton41);
+        actualGridContainer.appendChild(mergedButton23);
+        actualGridContainer.appendChild(mergedButton14);
+
+        actualGridContainer.appendChild(mergedButton34);
+        actualGridContainer.appendChild(mergedButton32);
+
+
+
+
+
+        });
     </script>
 </body>
 </html>
+
+
