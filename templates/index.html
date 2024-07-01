@@ -103,6 +103,7 @@
                 containerDiv.style.display = 'none';
                 additionalButtons.style.display = 'flex';
                 showSequential(event);  // Default to showing the Sequential grid
+                document.querySelector('#additional-buttons .pill-button-unique[onclick="showSequential(event)"]').classList.add('active'); // Add this line
             } else {
                 containerDiv.style.display = 'block';
                 additionalButtons.style.display = 'none';
@@ -168,8 +169,22 @@
         const actualGridContainer = document.getElementById('grid-container-ihu-actual');
 
         // Function to create merged cells
+        function createMergedCell(top, left, width, height, color) {
+            const cell = document.createElement('div');
+            cell.style.position = 'absolute';
+            cell.style.top = top + 'px';
+            cell.style.left = left + 'px';
+            cell.style.width = width + 'px';
+            cell.style.height = height + 'px';
+            cell.style.backgroundColor = color;
+            // cell.style.border = '1px solid #000';
+            return cell;
+}
+
+        // Function to create merged cells
         function createMergedButton(top, left, width, height, text, color, href) {
             const button = document.createElement('button');
+            button.className = 'actual-merged-button';
             button.textContent = text;
             button.style.position = 'absolute';
             button.style.top = top + 'px';
@@ -177,7 +192,7 @@
             button.style.width = width + 'px';
             button.style.height = height + 'px';
             button.style.backgroundColor = color;
-            button.style.border = '1px solid #000';
+            button.style.border = '1px solid #2b333c';
             button.style.fontSize = '1em';
             button.style.cursor = 'pointer';
             button.addEventListener('click', () => {
@@ -189,7 +204,7 @@
         // Add merged buttons to the Actual grid
         actualGridContainer.style.position = 'relative';
 
-        // Example merged buttons (top, left, width, height)
+        // merged buttons (top, left, width, height)
         const mergedButton61 = createMergedButton(0, 40, 40, 40, '61', '#B4A7D5', '/hatpi/ihu/ihu-61');
         const mergedButton55 = createMergedButton(0, 400, 40, 40, '55', '#B4A7D5', '/hatpi/ihu/ihu-55');
 
@@ -267,6 +282,58 @@
 
         const mergedButton34 = createMergedButton(560, 140, 40, 40, '34', '#76A5AE', '/hatpi/ihu/ihu-34');
         const mergedButton32 = createMergedButton(560, 300, 40, 40, '32', '#76A5AE', '/hatpi/ihu/ihu-32');
+
+
+        // grey outer frame (top, left, width, height)
+        const frame1 = createMergedCell(60, 0, 480, 40, '#2b333c',); //top
+        const frame2 = createMergedCell(60, 0, 40, 480, '#2b333c',); //left
+        const frame3 = createMergedCell(500, 0, 480, 40, '#2b333c',); //bottom
+        const frame4 = createMergedCell(60, 440, 40, 480, '#2b333c',); //right
+
+        // grey middle frame (top, left, width, height)
+        const frame5 = createMergedCell(120, 60, 360, 40, '#2b333c'); //top
+        const frame6 = createMergedCell(120, 60, 40, 360, '#2b333c'); //left
+        const frame7 = createMergedCell(440, 60, 360, 40, '#2b333c'); //bottom
+        const frame8 = createMergedCell(120, 380, 40, 360, '#2b333c'); //right
+
+        // grey inner frame (top, left, width, height)
+        const frame9 = createMergedCell(180, 120, 240, 40, '#2b333c'); //top
+        const frame10 = createMergedCell(180, 120, 40, 240, '#2b333c'); //left
+        const frame11 = createMergedCell(380, 120, 240, 40, '#2b333c'); //bottom
+        const frame12 = createMergedCell(180, 320, 40, 240, '#2b333c'); //right
+        
+
+        // grey top/bottom legs of frame (top, left, width, height)
+        const frame13 = createMergedCell(0, 40, 40, 100, '#2b333c'); //top-left
+        const frame14 = createMergedCell(0, 400, 40, 100, '#2b333c'); //top-right
+        const frame15 = createMergedCell(500, 140, 40, 100, '#2b333c'); //bottom-left
+        const frame16 = createMergedCell(500, 300, 40, 100, '#2b333c',); //bottom-right
+
+
+        //grey frames
+        actualGridContainer.appendChild(frame1);
+        actualGridContainer.appendChild(frame2);
+        actualGridContainer.appendChild(frame3);
+        actualGridContainer.appendChild(frame4);
+
+        actualGridContainer.appendChild(frame5);
+        actualGridContainer.appendChild(frame6);
+        actualGridContainer.appendChild(frame7);
+        actualGridContainer.appendChild(frame8);
+
+        actualGridContainer.appendChild(frame9);
+        actualGridContainer.appendChild(frame10);
+        actualGridContainer.appendChild(frame11);
+        actualGridContainer.appendChild(frame12);
+
+        actualGridContainer.appendChild(frame13);
+        actualGridContainer.appendChild(frame14);
+        actualGridContainer.appendChild(frame15);
+        actualGridContainer.appendChild(frame16);
+
+
+
+        //IHU buttons
 
         actualGridContainer.appendChild(mergedButton61);
         actualGridContainer.appendChild(mergedButton55);

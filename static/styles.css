@@ -666,6 +666,12 @@ a.back-to-home:hover {
     cursor: pointer;
 }
 
+.actual-merged-button:hover {
+    border: 5px solid white;
+    cursor: crosshair;
+}
+
+
 /* Styles for the filter container and buttons */
 .filter-container {
     display: grid;
