@@ -794,3 +794,15 @@ a.back-to-home:hover {
 .comment-body p {
     margin-right: 75px;
 }
+
+
+.copy-link {
+    display: block;
+    margin-top: 10px;
+    color: #3279A5;
+    cursor: pointer;
+}
+
+.copy-link:hover {
+    color: #2980b9;
+}

@@ -243,14 +243,14 @@ function openGallery(filePath) {
     const formattedTitle = formatTitle(fileName);
     const titleContainer = document.createElement('div');
     titleContainer.className = 'gallery-title-container';
+
     const instructionsContainer = document.createElement('div');
     instructionsContainer.className = 'instructions-container';
-    instructionsContainer.style.textAlign = 'left'; // Add this line to align text left
+    instructionsContainer.style.textAlign = 'left';
     instructionsContainer.innerHTML = `
         <p>Press and hold 'z' to zoom</p>
         <p>Press and hold 'd' to draw</p>
     `;
-
 
     formattedTitle.forEach(line => {
         const lineElement = document.createElement('div');
@@ -259,6 +259,28 @@ function openGallery(filePath) {
         titleContainer.appendChild(lineElement);
     });
 
+    // Extract the date and other parts from the filename
+    const dateLine = formattedTitle.find(line => /\d{4}-\d{2}-\d{2}/.test(line));
+    const date = dateLine ? dateLine.match(/\d{4}-\d{2}-\d{2}/)[0].replace(/-/g, '') : '';
+
+    // Only show the copy link for .jpg files
+    if (fileName.endsWith('.jpg')) {
+        const copyLink = document.createElement('a');
+        copyLink.href = '#';
+        copyLink.innerText = 'Copy Image Link';
+        copyLink.className = 'copy-link';
+        copyLink.addEventListener('click', function (event) {
+            event.preventDefault();
+            const imageName = fileName.split('.')[0];
+            const url = `https://hatops.astro.princeton.edu/hatpi-plots/1-${date}/${fileName}`;
+            copyToClipboard(url);
+            copyLink.innerText = 'Copied ✅';
+        });
+
+        titleContainer.appendChild(copyLink);
+    }
+
+    // Append title container to the gallery overlay
     const fileType = filePath.split('.').pop();
     currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.plot-list .file-item' : (fileType === 'mp4' ? '.movies .file-item' : '.images .file-item'));
     currentGalleryFiles = Array.from(currentGalleryFiles).filter(item => item.style.display !== 'none').map(item => item.querySelector('a'));
@@ -357,6 +379,21 @@ function openGallery(filePath) {
         addCanvasOverlay(content);
     }
 }
+
+function copyToClipboard(text) {
+    const tempInput = document.createElement('input');
+    tempInput.style.position = 'absolute';
+    tempInput.style.left = '-9999px';
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+}
+
+
+
+
 
 function submitCommentOrMarkup(filePath, comment) {
     if (!comment.trim()) {
