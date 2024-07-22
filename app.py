@@ -108,11 +108,17 @@ def format_filename(value):
             type_part = 'PSF sources model'
         elif 'subframe_quality' in value:
             type_part = 'subframe quality'
+        elif 'telescope_status' in value:
+            type_part = 'Telescope Status'
         else:
             type_part = 'unknown'
 
         ihu_match = re.search(r'_(\d+)_', value)
         ihu_part = ihu_match.group(1) if ihu_match else 'IHU-'
+
+        # Specific check for Telescope Status type
+        if type_part == 'Telescope Status':
+            return "%s | %s" % (date_part, type_part)
 
     elif value.endswith('.mp4'):
         parts = value.split('_')
@@ -209,10 +215,14 @@ def get_cached_files(folder_path):
     images = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.jpg')]
     html_files = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.html')]
     movies = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.mp4')]
+    
 
     if folder_path.startswith('/nfs/hatops/ar0/hatpi-website/1-'):
         images.sort(key=lambda x: extract_ihu_number(x[0]))
-        html_files.sort(key=lambda x: extract_ihu_number(x[0]))
+        html_files.sort(key=lambda x: (
+            0 if 'telescope_status' in x[0] else 1,
+            extract_ihu_number(x[0])
+        ))
         movies.sort(key=lambda x: extract_ihu_number(x[0]))
     else:
         images.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
