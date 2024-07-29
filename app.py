@@ -81,7 +81,7 @@ def format_filename(value):
         elif 'masterglobflat' in parts[0] and 'ls' in parts[-1]:
             type_part = 'globflat ls'
         elif 'masterflat' in parts[0] and 'ss' in parts[-1]:
-            type_part = 'flat ss'
+            type_part = 'flat'
         elif 'masterflat' in parts[0] and 'ls' in parts[-1]:
             type_part = 'flat ls'
         else:

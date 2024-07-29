@@ -272,7 +272,7 @@ function openGallery(filePath) {
         copyLink.addEventListener('click', function (event) {
             event.preventDefault();
             const imageName = fileName.split('.')[0];
-            const url = `https://hatops.astro.princeton.edu/hatpi-plots/1-${date}/${fileName}`;
+            const url = `https://hatops.astro.princeton.edu/hatpi/1-${date}/${fileName}`;
             copyToClipboard(url);
             copyLink.innerText = 'Copied ✅';
         });
