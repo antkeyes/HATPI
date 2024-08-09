@@ -312,15 +312,28 @@ function openGallery(filePath) {
         content.src = 'path_to_placeholder_image.jpg'; 
     };
 
+    //function to close gallery overlay
+    function closeGalleryOverlay() {
+        if (galleryOverlay) {
+            document.body.removeChild(galleryOverlay);
+            galleryOverlay = null;
+            currentGalleryIndex = -1;
+            currentGalleryFiles = [];
+        }
+    } 
+
+    //create 'esc' button
     const closeButton = document.createElement('button');
-    closeButton.innerText = 'X';
+    closeButton.innerText = 'esc';
     closeButton.className = "closeButton";
-    closeButton.onclick = () => {
-        document.body.removeChild(galleryOverlay);
-        galleryOverlay = null;
-        currentGalleryIndex = -1;
-        currentGalleryFiles = [];
-    };
+    closeButton.onclick = closeGalleryOverlay;
+
+    //keydown listener for escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeGalleryOverlay();
+        }
+    });
 
     const commentContainer = document.createElement('div');
     commentContainer.className = 'comment-container';
