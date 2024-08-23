@@ -244,14 +244,6 @@ function openGallery(filePath) {
     const titleContainer = document.createElement('div');
     titleContainer.className = 'gallery-title-container';
 
-    const instructionsContainer = document.createElement('div');
-    instructionsContainer.className = 'instructions-container';
-    instructionsContainer.style.textAlign = 'left';
-    instructionsContainer.innerHTML = `
-        <p>Press and hold 'z' to zoom</p>
-        <p>Press and hold 'd' to draw</p>
-    `;
-
     formattedTitle.forEach(line => {
         const lineElement = document.createElement('div');
         lineElement.className = 'gallery-title-line';
@@ -280,7 +272,7 @@ function openGallery(filePath) {
         titleContainer.appendChild(copyLink);
     }
 
-    // Append title container to the gallery overlay
+    let content;
     const fileType = filePath.split('.').pop();
     currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.plot-list .file-item' : (fileType === 'mp4' ? '.movies .file-item' : '.images .file-item'));
     currentGalleryFiles = Array.from(currentGalleryFiles).filter(item => item.style.display !== 'none').map(item => item.querySelector('a'));
@@ -291,7 +283,6 @@ function openGallery(filePath) {
         return;
     }
 
-    let content;
     if (fileType === 'html') {
         content = document.createElement('iframe');
         content.src = filePath;
@@ -312,7 +303,7 @@ function openGallery(filePath) {
         content.src = 'path_to_placeholder_image.jpg'; 
     };
 
-    //function to close gallery overlay
+    // Function to close gallery overlay
     function closeGalleryOverlay() {
         if (galleryOverlay) {
             document.body.removeChild(galleryOverlay);
@@ -320,15 +311,15 @@ function openGallery(filePath) {
             currentGalleryIndex = -1;
             currentGalleryFiles = [];
         }
-    } 
+    }
 
-    //create 'esc' button
+    // Create 'esc' button
     const closeButton = document.createElement('button');
     closeButton.innerText = 'esc';
     closeButton.className = "closeButton";
     closeButton.onclick = closeGalleryOverlay;
 
-    //keydown listener for escape key
+    // Keydown listener for escape key
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             closeGalleryOverlay();
@@ -378,7 +369,18 @@ function openGallery(filePath) {
     rightComments.appendChild(titleContainer);
     rightComments.appendChild(commentContainer);
     rightComments.appendChild(navContainer);
-    rightComments.appendChild(instructionsContainer);
+
+    // Only add the instructionsContainer if the file type is .jpg
+    if (fileType === 'jpg') {
+        const instructionsContainer = document.createElement('div');
+        instructionsContainer.className = 'instructions-container';
+        instructionsContainer.style.textAlign = 'left';
+        instructionsContainer.innerHTML = `
+            <p>Press and hold 'z' to zoom</p>
+            <p>Press and hold 'd' to draw</p>
+        `;
+        rightComments.appendChild(instructionsContainer);
+    }
 
     contentContainer.appendChild(leftContent);
     contentContainer.appendChild(rightComments);
@@ -392,6 +394,7 @@ function openGallery(filePath) {
         addCanvasOverlay(content);
     }
 }
+
 
 function copyToClipboard(text) {
     const tempInput = document.createElement('input');
@@ -701,34 +704,41 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function deleteComment(commentId) {
-    fetch('/hatpi/delete_comment', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ commentId: commentId }),
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Remove the comment element from the DOM
-            const commentElement = document.querySelector(`.comment-item[data-comment-id='${commentId}']`);
-            if (commentElement) {
-                commentElement.remove();
+    // show a confirmation popup
+    const isConfirmed = confirm('Are you sure you want to delete this comment?');
+
+    // confirmation logic
+    if (isConfirmed) {
+        fetch('/hatpi/delete_comment', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ commentId: commentId }),
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        } else {
-            alert('Failed to delete comment.');
-        }
-    })
-    .catch(error => {
-        console.error('Error deleting comment:', error);
-        alert('Error deleting comment.');
-    });
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Remove the comment element from the DOM
+                const commentElement = document.querySelector(`.comment-item[data-comment-id='${commentId}']`);
+                if (commentElement) {
+                    commentElement.remove();
+                }
+            } else {
+                alert('Failed to delete comment.');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting comment:', error);
+            alert('Error deleting comment.');
+        });
+
+    }
 }
 
 function filterImages(filter) {
