@@ -405,7 +405,9 @@ a.back-to-home:hover {
     font-size: 24px;
     color: white;
     background: none;
-    border: none;
+    border: 1px solid #87689E;
+    border-radius: 8px;
+    padding: 7px;
     cursor: pointer;
     transition: color 0.3s;
     position: absolute;

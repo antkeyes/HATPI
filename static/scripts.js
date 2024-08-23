@@ -333,12 +333,34 @@ function openGallery(filePath) {
     commentBox.className = "commentBox";
     commentBox.placeholder = 'Add a comment...';
 
+    // author dropdown
+    const authorDropdown = document.createElement('select');
+    authorDropdown.className = 'author-dropdown';
+
+    // 'author' as default label
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Author';
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    authorDropdown.appendChild(defaultOption);
+
+    // authors for options
+    const authors = ['Anthony', 'Antoine', 'Attila', 'Gaspar', 'Geert Jan', 'Joel', 'Zoli', 'Guest']
+    authors.forEach(author => {
+        const option = document.createElement('option');
+        option.value = author;
+        option.textContent = author;
+        authorDropdown.appendChild(option);
+    });
+
     const submitButton = document.createElement('button');
     submitButton.innerText = 'Submit';
     submitButton.className = 'submit-button';
-    submitButton.onclick = () => submitCommentOrMarkup(filePath, commentBox.value);
+    submitButton.onclick = () => submitCommentOrMarkup(filePath, commentBox.value, authorDropdown.value);
 
     commentContainer.appendChild(commentBox);
+    commentContainer.appendChild(authorDropdown);
     commentContainer.appendChild(submitButton);
 
     const createArrow = (direction) => {
