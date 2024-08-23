@@ -205,6 +205,10 @@ a:hover {
     position: relative;
 }
 
+.comment-author {
+    color: #CE9179;
+}
+
 /* Unique pill container and button styling */
 .back-to-home {
     position: absolute;
@@ -441,7 +445,7 @@ a.back-to-home:hover {
     width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: left;
     padding: 10px;
     background-color: #21262E;
     border: 1px solid #8E97A1;
@@ -449,6 +453,19 @@ a.back-to-home:hover {
     overflow: hidden;
     margin-right: 10px;
 }
+
+.author-dropdown {
+    width: 40%;
+    padding: 5px;
+    margin-top: 0px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border: 1px solid darkgrey;
+    background-color: #D4D4D4; /* Ensure it has a white background */
+    color: #333; /* Default text color */
+    display: block;
+}
+
 
 .log-comment-container {
     width: 80%;
@@ -469,25 +486,35 @@ a.back-to-home:hover {
     width: 90%;
     height: 50px;
     border: 1px solid darkgrey;
+    background-color: #D4D4D4;
     border-radius: 8px;
     margin-bottom: 10px;
     margin-top: 10px;
 }
 
+.commentBox::placeholder {
+    color: #333; 
+    opacity: 1; 
+}
+
+
 .submit-button {
-    width: 90%;
+    width: 30%;
     font-size: 1em;
     padding-top: 10px;
     padding-bottom: 10px;
     margin-bottom: 10px;
     color: #d4d4d4;
-    background-color: #87689E;
+    border: 1px solid #87689E;
+    background-color: #21262E;
     border-radius: 8px;
+    align-self: center;
     cursor: pointer;
 }
 
 .submit-button:hover {
-    background-color: #a787b3;
+    /* border: 3px solid #87689E; */
+    box-shadow: 0 0 15px rgba(135, 104, 159, 0.8);
 }
 
 /* Styles for folder list on the home page */

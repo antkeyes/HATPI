@@ -69,7 +69,7 @@
                         <span class="comment-timestamp">{{ comment.timestamp }}</span>
                     </div>
                     <div class="comment-body">
-                        <p>{{ comment.comment }}</p>
+                        <p><strong><span class="comment-author">{{ comment.author }}:</span></strong> {{ comment.comment }}</p>
                         <button class="delete-comment-button" onclick="deleteComment('{{ unique_key }}')">Delete</button>
                     </div>
                 </div>
