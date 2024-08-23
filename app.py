@@ -257,6 +257,7 @@ def save_markups():
         file_name = data['fileName']
         image_data = data['imageData']
         comment = data.get('comment', '')
+        author = data.get('author', '')
         markup_true = data.get('markup_true')
 
         if not comment:
@@ -276,6 +277,7 @@ def save_markups():
         unique_key = '%s_%s' % (file_name, datetime.datetime.now().strftime('%Y%m%d%H%M%S%f'))
         comments[unique_key] = {
             'comment': comment,
+            'author': author,
             'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'file_path': '/hatpi/markup_images/%s' % file_name,
             'markup_true': markup_true
