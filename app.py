@@ -314,6 +314,7 @@ def submit_comment():
     file_name = data.get('fileName')
     file_path = data.get('filePath')
     comment = data.get('comment')
+    author = data.get('author')
     markup_true = data.get('markup_true', '')
     
     if file_name and comment:
@@ -322,6 +323,7 @@ def submit_comment():
         comments[unique_key] = {
             'file_path': file_path,
             'comment': comment,
+            'author': author,
             'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'markup_true': markup_true
         }
