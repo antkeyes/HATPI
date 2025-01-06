@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 BASE_DIR = '/nfs/hatops/ar0/hatpi-website'
-EXCLUDE_FOLDERS = set(['static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images'])
+EXCLUDE_FOLDERS = set(['download_sandbox' ,'static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images'])
 
 for folder in os.listdir(BASE_DIR):
     if folder.startswith('ihu'):
@@ -179,13 +179,17 @@ def home():
 @app.route('/<folder_name>/')
 def folder(folder_name):
     folder_path = os.path.join(BASE_DIR, folder_name)
+    # images, html_files = get_cached_files(folder_path)
     images, html_files, movies = get_cached_files(folder_path)
+    # return render_template('folder.html', images=images, html_files=html_files, folder_name=folder_name)
     return render_template('folder.html', images=images, html_files=html_files, movies=movies, folder_name=folder_name)
 
 @app.route('/api/folder/<folder_name>')
 def api_folder(folder_name):
     folder_path = os.path.join(BASE_DIR, folder_name)
+    # images, html_files = get_cached_files(folder_path)
     images, html_files, movies = get_cached_files(folder_path)
+    # return jsonify({'images': images, 'html_files': html_files})
     return jsonify({'images': images, 'html_files': html_files, 'movies': movies})
 
 def is_date_based_folder(folder_name):
@@ -229,8 +233,10 @@ def get_cached_files(folder_path):
         html_files.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
         movies.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
         
+        # cache.put(folder_path, (images, html_files))
         cache.put(folder_path, (images, html_files, movies))
     logging.info("get_cached_files - Directory reading and caching time: %s seconds" % (time.time() - start_time))
+    # return images, html_files
     return images, html_files, movies
 
 @app.route('/hatpi/comments.json')
@@ -307,7 +313,9 @@ def file(folder_name, filename):
 def ihu_cell(cell_number):
     folder_name = 'ihu-%s' % cell_number
     folder_path = os.path.join(BASE_DIR, folder_name)
+    # images, html_files = get_cached_files(folder_path)
     images, html_files, movies = get_cached_files(folder_path)
+    # return render_template('folder.html', folder_name=folder_name, images=images, html_files=html_files)
     return render_template('folder.html', folder_name=folder_name, images=images, html_files=html_files, movies=movies)
 
 @app.route('/submit_comment', methods=['POST'])

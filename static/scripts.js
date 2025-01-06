@@ -433,9 +433,14 @@ function copyToClipboard(text) {
 
 
 
-function submitCommentOrMarkup(filePath, comment) {
+function submitCommentOrMarkup(filePath, comment, author) {
     if (!comment.trim()) {
         alert('Comment required to submit.');
+        return;
+    }
+
+    if (!author) {
+        alert('Please select an author.')
         return;
     }
 
@@ -462,6 +467,7 @@ function submitCommentOrMarkup(filePath, comment) {
                 fileName: filePath.split('/').pop(),
                 imageData: dataURL,
                 comment: comment,
+                author: author,
                 markup_true: '✏️'
             }),
         })
@@ -491,7 +497,12 @@ function submitCommentOrMarkup(filePath, comment) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ fileName: filePath.split('/').pop(), filePath, comment }),
+            body: JSON.stringify({ 
+                fileName: filePath.split('/').pop(),
+                filePath,
+                comment,
+                author: author
+             }),
         })
         .then(response => {
             if (!response.ok) {
