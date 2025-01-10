@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the base directories
-SOURCE_DIR="/nfs/php1/ar1/P/HP1/REDUCTION/MOVIES"
+SOURCE_DIR="/nfs/php1/ar2/P/HP1/REDUCTION/MOVIES"  # Updated to the new source location
 TARGET_DIR="/nfs/hatops/ar0/hatpi-website"
 LOG_FILE="/nfs/hatops/ar0/hatpi-website/logs/movies_to_ihu.log"
 
@@ -9,7 +9,7 @@ LOG_FILE="/nfs/hatops/ar0/hatpi-website/logs/movies_to_ihu.log"
 mkdir -p "$(dirname "$LOG_FILE")"
 
 # Reference date in YYYYMMDD format
-reference_date="20240529"
+reference_date="20240629"
 
 # Function to log messages with timestamp
 log_message() {
@@ -19,7 +19,7 @@ log_message() {
 log_message "Script started."
 
 # Iterate over each folder in the source directory
-for folder in "$SOURCE_DIR"/*; do
+for folder in "$SOURCE_DIR"/1-*; do
     if [ -d "$folder" ]; then
         folder_name=$(basename "$folder")
 
@@ -37,16 +37,20 @@ for folder in "$SOURCE_DIR"/*; do
                 # Extract IHU number from the filename
                 if [[ "$file_name" =~ _([0-9]+)_ ]]; then
                     ihu_number=${BASH_REMATCH[1]}
-                    ihu_directory="ihu-$(printf "%02d" $ihu_number)"
+                    
+                    # Format the IHU number to ensure it is two digits with leading zeros as needed
+                    ihu_directory="ihu-$(printf "%02d" "$ihu_number")"
 
                     # Check if the corresponding IHU directory exists in the target
                     if [ -d "$TARGET_DIR/$ihu_directory" ]; then
+                        # Create the relative path to the source file
+                        relative_path="/nfs/php1/ar2/P/HP1/REDUCTION/MOVIES/$folder_name/$file_name"
                         target_symlink="$TARGET_DIR/$ihu_directory/$file_name"
 
                         # Check if the symlink already exists
                         if [ ! -e "$target_symlink" ]; then
-                            # Create symlink in the corresponding IHU directory
-                            ln -s "$file" "$target_symlink"
+                            # Create symlink in the corresponding IHU directory using the relative path
+                            ln -s "$relative_path" "$target_symlink"
                             if [ $? -eq 0 ]; then
                                 log_message "Created symlink for $file_name in $TARGET_DIR/$ihu_directory"
                             else

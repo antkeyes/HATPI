@@ -179,17 +179,13 @@ def home():
 @app.route('/<folder_name>/')
 def folder(folder_name):
     folder_path = os.path.join(BASE_DIR, folder_name)
-    # images, html_files = get_cached_files(folder_path)
     images, html_files, movies = get_cached_files(folder_path)
-    # return render_template('folder.html', images=images, html_files=html_files, folder_name=folder_name)
     return render_template('folder.html', images=images, html_files=html_files, movies=movies, folder_name=folder_name)
 
 @app.route('/api/folder/<folder_name>')
 def api_folder(folder_name):
     folder_path = os.path.join(BASE_DIR, folder_name)
-    # images, html_files = get_cached_files(folder_path)
     images, html_files, movies = get_cached_files(folder_path)
-    # return jsonify({'images': images, 'html_files': html_files})
     return jsonify({'images': images, 'html_files': html_files, 'movies': movies})
 
 def is_date_based_folder(folder_name):
@@ -200,6 +196,22 @@ def extract_ihu_number(filename):
     if match:
         return int(match.group(1))
     return float('inf')
+
+###############################################################################
+# ADD THIS HELPER FUNCTION (if you haven't already):
+###############################################################################
+def parse_file_date(filename):
+    """
+    Extract a date (YYYYMMDD) from the filename and return a datetime object.
+    Return None if no date is found.
+    """
+    match = re.search(r'(\d{4})(\d{2})(\d{2})', filename)
+    if match:
+        year = int(match.group(1))
+        month = int(match.group(2))
+        day = int(match.group(3))
+        return datetime.datetime(year, month, day)
+    return None
 
 def get_cached_files(folder_path):
     start_time = time.time()
@@ -215,28 +227,59 @@ def get_cached_files(folder_path):
         logging.error("Error reading directory %s: %s" % (folder_path, e))
         return [], [], []
     
+    # Sort raw filenames alphabetically first
     files.sort()
+
+    # Create lists of (filename, creation_date_string)
     images = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.jpg')]
     html_files = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.html')]
     movies = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.mp4')]
     
+    # -----------------------------------------------------------
+    #   If path looks like "/nfs/hatops/ar0/hatpi-website/ihu-XX"
+    #   => Sort by embedded filename date for ALL file types
+    # -----------------------------------------------------------
+    if "/nfs/hatops/ar0/hatpi-website/ihu-" in folder_path:
+        images.sort(
+            key=lambda x: (parse_file_date(x[0]) or datetime.datetime.min),
+            reverse=True
+        )
+        html_files.sort(
+            key=lambda x: (
+                0 if 'telescope_status' in x[0] else 1,
+                parse_file_date(x[0]) or datetime.datetime.min
+            ),
+            reverse=True
+        )
+        movies.sort(
+            key=lambda x: (parse_file_date(x[0]) or datetime.datetime.min),
+            reverse=True
+        )
 
-    if folder_path.startswith('/nfs/hatops/ar0/hatpi-website/1-'):
+    # -----------------------------------------------------------
+    #   If it's a "Dates" folder (e.g. "/nfs/hatops/ar0/hatpi-website/1-20250105")
+    #   => Use your original logic
+    # -----------------------------------------------------------
+    elif folder_path.startswith('/nfs/hatops/ar0/hatpi-website/1-'):
         images.sort(key=lambda x: extract_ihu_number(x[0]))
         html_files.sort(key=lambda x: (
             0 if 'telescope_status' in x[0] else 1,
             extract_ihu_number(x[0])
         ))
         movies.sort(key=lambda x: extract_ihu_number(x[0]))
+
+    # -----------------------------------------------------------
+    #   Otherwise, fallback to creation-date sorting
+    #   => (Your original else block)
+    # -----------------------------------------------------------
     else:
         images.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
         html_files.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
         movies.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
-        
-        # cache.put(folder_path, (images, html_files))
-        cache.put(folder_path, (images, html_files, movies))
+
+    # Cache the result
+    cache.put(folder_path, (images, html_files, movies))
     logging.info("get_cached_files - Directory reading and caching time: %s seconds" % (time.time() - start_time))
-    # return images, html_files
     return images, html_files, movies
 
 @app.route('/hatpi/comments.json')
@@ -313,9 +356,7 @@ def file(folder_name, filename):
 def ihu_cell(cell_number):
     folder_name = 'ihu-%s' % cell_number
     folder_path = os.path.join(BASE_DIR, folder_name)
-    # images, html_files = get_cached_files(folder_path)
     images, html_files, movies = get_cached_files(folder_path)
-    # return render_template('folder.html', folder_name=folder_name, images=images, html_files=html_files)
     return render_template('folder.html', folder_name=folder_name, images=images, html_files=html_files, movies=movies)
 
 @app.route('/submit_comment', methods=['POST'])
@@ -353,7 +394,6 @@ def delete_comment():
             save_comments(comments)
             return jsonify({'success': True})
     return jsonify({'success': False})
-
 
 def get_creation_date(file_path):
     return datetime.datetime.fromtimestamp(os.path.getctime(file_path)).strftime('%Y-%m-%d %H:%M:%S')
