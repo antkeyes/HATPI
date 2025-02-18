@@ -1,8 +1,14 @@
-// Utility function to apply alternating colors
+/***************************************
+ * scripts.js
+ ***************************************/
+
+/**
+ * 1) Apply alternating odd/even row colors for file-items
+ */
 function applyAlternatingColors(containerSelector) {
     const items = document.querySelectorAll(`${containerSelector} .file-item`);
     let visibleItems = Array.from(items).filter(item => item.style.display !== 'none');
-    
+
     visibleItems.forEach((item, index) => {
         item.classList.remove('odd', 'even');
         if (index % 2 === 0) {
@@ -13,8 +19,23 @@ function applyAlternatingColors(containerSelector) {
     });
 }
 
+// Store your original calibration filter buttons in a constant.
+// This will be re-injected when returning to "Calibration" mode.
+const CALIBRATION_BUTTONS_HTML = `
+    <button class="filter-button active" onclick="filterImages('all')">All</button>
+    <button class="filter-button" onclick="filterImages('bias')">Bias</button>
+    <button class="filter-button" onclick="filterImages('dark')">Dark</button>
+    <button class="filter-button" onclick="filterImages('flat-ss')">Flat</button>
+    <!-- <button class="filter-button" onclick="filterImages('flat-ls')">Flat ls</button> -->
+    <button class="filter-button" onclick="filterImages('globflat-ss')">Globflat ss</button>
+    <button class="filter-button" onclick="filterImages('globflat-ls')">Globflat ls</button>
+`;
+
+/**
+ * Load the default calibration data for the current folder.
+ */
 function loadFolder(folderName) {
-    fetch(`/api/folder/${folderName}`)
+    fetch(`/hatpi/api/folder/${folderName}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');
@@ -33,50 +54,316 @@ function loadFolder(folderName) {
         .catch(error => console.error('Error loading folder:', error));
 }
 
+/**
+ * Switch between "Calibration" mode and "RED/SUB" mode
+ */
+function switchDataMode(mode) {
+    const calibrationBtn = document.getElementById('calibrationModeButton');
+    const redSubBtn = document.getElementById('redSubModeButton');
+    const imageFiltersContainer = document.getElementById('image-filters');
+    const gridContainer = document.getElementById('grid-container-redsub');
+    const imagesContainer = document.querySelector('.images-list .images');
+    const folderName = document.querySelector('.page-title').getAttribute('data-folder');
+
+    if (mode === 'calibration') {
+        calibrationBtn.classList.add('active');
+        redSubBtn.classList.remove('active');
+
+        // Return calibration filter buttons
+        imageFiltersContainer.innerHTML = CALIBRATION_BUTTONS_HTML;
+        gridContainer.style.display = 'none';
+
+        // Clear out whatever is in the .images container
+        imagesContainer.innerHTML = '';
+
+        // Force the "Images" tab to be selected, so it doesn't remain on "Plots" or "Movies"
+        document.getElementById('images').classList.add('active');
+        document.getElementById('html-files').classList.remove('active');
+        document.getElementById('movies').classList.remove('active');
+
+        // Show the correct filter buttons
+        document.getElementById('image-filters').classList.remove('hidden');
+        document.getElementById('html-filters').classList.add('hidden');
+        document.getElementById('movie-filters').classList.add('hidden');
+
+        // Reload calibration folder images
+        fetch(`/hatpi/api/folder/${folderName}`)
+            .then(r => r.json())
+            .then(data => {
+                const images = data.images;
+                const htmlFiles = data.html_files;
+                const movies = data.movies;
+                displayFolderContents(images, htmlFiles, movies, folderName);
+                filterImages('all');
+            })
+            .catch(err => console.error('Error reloading calibration folder:', err));
+
+    } else if (mode === 'redsub') {
+        // RED / SUB logic
+        calibrationBtn.classList.remove('active');
+        redSubBtn.classList.add('active');
+
+        imageFiltersContainer.innerHTML = `
+            <button class="filter-button active" onclick="switchRedSubFilter('reduction')">Reduction</button>
+            <button class="filter-button" onclick="switchRedSubFilter('subtraction')">Subtraction</button>
+        `;
+
+        imagesContainer.innerHTML = '';
+        gridContainer.style.display = 'block';
+        createRedSubIHUGrid();
+    }
+}
+
+/**
+ * Switch between "Reduction" and "Subtraction" within RED/SUB mode
+ */
+function switchRedSubFilter(selectedType) {
+    // Mark the clicked button as active
+    const buttons = document.querySelectorAll('#image-filters .filter-button');
+    buttons.forEach(b => b.classList.remove('active'));
+
+    const clickedButton = Array.from(buttons).find(b => b.textContent.toLowerCase() === selectedType);
+    if (clickedButton) {
+        clickedButton.classList.add('active');
+    }
+
+    const imagesContainer = document.querySelector('.images-list .images');
+    imagesContainer.innerHTML = '';
+
+}
+
+/**
+ * Creates the "Sequential" IHU grid layout inside #grid-container-redsub,
+ * hooking each button to loadRedSubFolder() with "reduction" or "subtraction."
+ */
+function createRedSubIHUGrid() {
+    const sequentialGridContainer = document.getElementById('grid-container-redsub');
+    sequentialGridContainer.innerHTML = ''; // Clear any previous content
+    sequentialGridContainer.style.display = 'grid';
+
+    const sequentialRowColors = [
+        "#D5A6BE", // row 1
+        "#B4A7D6", // row 2
+        "#CEE1F3", // row 3
+        "#6FA7DC", // row 4
+        "#77A5AF", // row 5
+        "#93C47D", // row 6
+        "#F9E499", // row 7
+        "#F5B26B", // row 8
+        "#E06566", // row 9
+        "#CC4125"  // row 10
+    ];
+    const sequentialRowColumns = [3, 7, 8, 9, 9, 9, 8, 6, 4, 1];
+
+    let textIndex = 64;
+    for (let i = 0; i < sequentialRowColumns.length; i++) {
+        const row = document.createElement('div');
+        row.className = 'grid-row-ihu';
+        row.style.display = 'grid';
+        row.style.gridTemplateColumns = `repeat(${sequentialRowColumns[i]}, 45px)`;
+        row.style.justifyContent = 'center';
+        //horizontal and vertical gaps
+        row.style.gap = '3px';
+        row.style.marginBottom = '3px';
+
+        const cells = [];
+        for (let j = 0; j < sequentialRowColumns[i]; j++) {
+            const cell = document.createElement('div');
+            cell.className = 'grid-item-ihu';
+            cell.style.backgroundColor = sequentialRowColors[i];
+
+            const button = document.createElement('button');
+            button.textContent = textIndex;
+            button.style.width = '100%';
+            button.style.height = '100%';
+            button.style.border = 'none';
+            button.style.cursor = 'pointer';
+
+            (function (index) {
+                button.addEventListener('click', function () {
+                    const cellNumber = index.toString().padStart(2, '0');
+                    const dateFolder = document.querySelector('.page-title').getAttribute('data-folder');
+                    const activeFilterBtn = document.querySelector('#image-filters .filter-button.active');
+                    const type = activeFilterBtn ? activeFilterBtn.textContent.toLowerCase() : 'reduction';
+                    const cameraFolder = 'ihu' + cellNumber;
+                    loadRedSubFolder(dateFolder, cameraFolder, type);
+
+                    
+                });
+            })(textIndex);
+
+            cell.appendChild(button);
+            textIndex--;
+            cells.unshift(cell);
+        }
+        cells.forEach(cell => row.appendChild(cell));
+        sequentialGridContainer.appendChild(row);
+    }
+}
+
+/**
+ * Load images for dateFolder, cameraFolder, and type (reduction/subtraction)
+ * Then display them in .images-list .images
+ */
+function loadRedSubFolder(dateFolder, cameraFolder, type) {
+    const folderPath = `${type === 'reduction' ? 'RED' : 'SUB'}/${dateFolder}/${cameraFolder}`;
+    fetch(`/hatpi/api/folder/${folderPath}`)
+      .then(response => {
+        if (!response.ok) throw new Error('Network error');
+        return response.json();
+      })
+      .then(data => {
+        displayRedSubImages(data.images, dateFolder, type, cameraFolder);
+        // After updating the images list, scroll down 100px.
+        const container = document.querySelector('.images-list-container');
+        if (container) {
+          setTimeout(() => {
+            container.scrollTo({ top: 200, behavior: 'smooth' });
+          }, 50);
+        }
+      })
+      .catch(error => console.error('Error loading RED/SUB folder:', error));
+  }
+  
+
+/**
+ * Display loaded RED/SUB images, each with link text like:
+ *  "YYYY-MM-DD | reduction | IHU-01 | frame: 485376"
+ */
+function displayRedSubImages(images, dateFolder, type, cameraFolder) {
+    const imagesContainer = document.querySelector('.images-list .images');
+    imagesContainer.innerHTML = '';
+
+    images.forEach(image => {
+        const fileName = image[0];
+        const fileDate = image[1];
+        const linkText = buildRedSubLinkText(dateFolder, type, cameraFolder, fileName);
+        const fullPath = `/${type === 'reduction' ? 'RED' : 'SUB'}/${dateFolder}/${cameraFolder}/${fileName}`;
+
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.setAttribute('data-filename', fileName);
+        div.innerHTML = `
+            <div class="file-name">
+                <a href="#" onclick="openGallery('/hatpi${fullPath}'); return false;">
+                    ${linkText}
+                </a>
+            </div>
+            <div class="file-date">${fileDate}</div>
+        `;
+        imagesContainer.appendChild(div);
+    });
+
+    applyAlternatingColors('.images');
+}
+
+/**
+ * Build link text for RED/SUB images:
+ *  "YYYY-MM-DD | reduction | IHU-01 | frame: ####"
+ */
+function buildRedSubLinkText(dateFolder, type, cameraFolder, fileName) {
+    let match = fileName.match(/1-(\d+)_/);
+    const frameText = match ? `frame: ${match[1]}` : fileName;
+
+    // Convert "ihu01" => "IHU-01"
+    let cameraDisplay = cameraFolder.toUpperCase();
+    if (!cameraDisplay.includes('-')) {
+        cameraDisplay = cameraDisplay.slice(0, 3) + '-' + cameraDisplay.slice(3);
+    }
+
+    // Convert "1-20250213" => "2025-02-13"
+    let dateStr = dateFolder;
+    if (dateFolder.indexOf('-') === 1 && dateFolder.length >= 10) {
+        dateStr = dateFolder.substring(2, 6) + '-' +
+            dateFolder.substring(6, 8) + '-' +
+            dateFolder.substring(8, 10);
+    }
+
+    return `${dateStr} | ${type} | ${cameraDisplay} | ${frameText}`;
+}
+
+/**
+ * Display calibration images, HTML files, movies (non-RED/SUB),
+ * each name processed by formatTitle() to show the old formatting:
+ *  "YYYY-MM-DD | dark | IHU-01"
+ *  "YYYY-MM-DD | Aper Phot Quality | IHU-01"
+ *  "YYYY-MM-DD | subframe | IHU-01"
+ * etc.
+ */
 function displayFolderContents(images, htmlFiles, movies, folderName) {
     const imagesContainer = document.querySelector('.images');
-    const htmlFilesContainer = document.querySelector('.plot-list'); 
+    const htmlFilesContainer = document.querySelector('.plot-list');
     const moviesContainer = document.querySelector('.movies');
 
     imagesContainer.innerHTML = '';
     htmlFilesContainer.innerHTML = '';
     moviesContainer.innerHTML = '';
 
+    // IMAGES
     images.forEach(image => {
+        const fileName = image[0];
+        const fileDate = image[1];
+        const lines = formatTitle(fileName);  // Our custom formatting
+
+        const listingLines = lines.filter(line =>
+            !line.toLowerCase().startsWith('exposure time:') &&
+            !line.toLowerCase().startsWith('ccd temp:')
+        )
+
+        const prettyName = listingLines.length ? listingLines.join(' | ') : fileName;
+
         const div = document.createElement('div');
         div.className = 'file-item';
-        div.setAttribute('data-filename', image[0]);
+        div.setAttribute('data-filename', fileName);
         div.innerHTML = `
             <div class="file-name">
-                <a href="#" onclick="openGallery('/hatpi/${folderName}/${image[0]}'); return false;">${image[0]}</a>
+                <a href="#" onclick="openGallery('/hatpi/${folderName}/${fileName}'); return false;">
+                    ${prettyName}
+                </a>
             </div>
-            <div class="file-date">${image[1]}</div>
+            <div class="file-date">${fileDate}</div>
         `;
         imagesContainer.appendChild(div);
     });
 
+    // HTML FILES (plots)
     htmlFiles.forEach(htmlFile => {
+        const fileName = htmlFile[0];
+        const fileDate = htmlFile[1];
+        const lines = formatTitle(fileName);
+        const prettyName = lines.length ? lines.join(' | ') : fileName;
+
         const div = document.createElement('div');
         div.className = 'file-item';
-        div.setAttribute('data-filename', htmlFile[0]);
+        div.setAttribute('data-filename', fileName);
         div.innerHTML = `
             <div class="file-name">
-                <a href="#" onclick="loadPlot('/hatpi/${folderName}/${htmlFile[0]}'); return false;">${htmlFile[0]}</a>
+                <a href="#" onclick="loadPlot('/hatpi/${folderName}/${fileName}'); return false;">
+                    ${prettyName}
+                </a>
             </div>
-            <div class="file-date">${htmlFile[1]}</div>
+            <div class="file-date">${fileDate}</div>
         `;
         htmlFilesContainer.appendChild(div);
     });
 
+    // MOVIES
     movies.forEach(movie => {
+        const fileName = movie[0];
+        const fileDate = movie[1];
+        const lines = formatTitle(fileName);
+        const prettyName = lines.length ? lines.join(' | ') : fileName;
+
         const div = document.createElement('div');
         div.className = 'file-item';
-        div.setAttribute('data-filename', movie[0]);
+        div.setAttribute('data-filename', fileName);
         div.innerHTML = `
             <div class="file-name">
-                <a href="#" onclick="openGallery('/hatpi/${folderName}/${movie[0]}'); return false;">${movie[0]}</a>
+                <a href="#" onclick="openGallery('/hatpi/${folderName}/${fileName}'); return false;">
+                    ${prettyName}
+                </a>
             </div>
-            <div class="file-date">${movie[1]}</div>
+            <div class="file-date">${fileDate}</div>
         `;
         moviesContainer.appendChild(div);
     });
@@ -86,6 +373,9 @@ function displayFolderContents(images, htmlFiles, movies, folderName) {
     applyAlternatingColors('.movies');
 }
 
+/** 
+ * Tab switching for Images / Plots / Movies
+ */
 function showTab(tabId, event) {
     var tabContents = document.getElementsByClassName('tab-content');
     for (var i = 0; i < tabContents.length; i++) {
@@ -117,8 +407,26 @@ function showTab(tabId, event) {
         document.getElementById('html-filters').classList.add('hidden');
         document.getElementById('movie-filters').classList.add('hidden');
     }
+
+    // Only show the grid if we're in RED/SUB mode AND the Images tab is active.
+    if (tabId === 'images' && document.getElementById('redSubModeButton').classList.contains('active')) {
+        document.getElementById('grid-container-redsub').style.display = 'block';
+    } else {
+        document.getElementById('grid-container-redsub').style.display = 'none';
+    }
+
+    if (tabId === 'images') {
+        document.getElementById('data-mode-buttons').style.display = 'block';
+    } else {
+        document.getElementById('data-mode-buttons').style.display = 'none';
+    }
+
+
 }
 
+/**************************************************
+ *  GALLERY / OVERLAY CODE
+ **************************************************/
 let currentGalleryIndex = -1;
 let currentGalleryFiles = [];
 let galleryOverlay = null;
@@ -192,6 +500,7 @@ function showMagnifier(event) {
     const magnifier = document.getElementById('magnifier');
     if (magnifierActive && magnifier) {
         const img = document.querySelector('.gallery-content');
+        if (!img) return;
         const imgRect = img.getBoundingClientRect();
         const magnifierSize = 400;
         const zoomLevel = 2;
@@ -215,8 +524,12 @@ function showMagnifier(event) {
 
             if (bgPosX < 0) bgPosX = 0;
             if (bgPosY < 0) bgPosY = 0;
-            if (bgPosX + magnifierSize > imgRect.width * zoomLevel) bgPosX = imgRect.width * zoomLevel - magnifierSize;
-            if (bgPosY + magnifierSize > imgRect.height * zoomLevel) bgPosY = imgRect.height * zoomLevel - magnifierSize;
+            if (bgPosX + magnifierSize > imgRect.width * zoomLevel) {
+                bgPosX = imgRect.width * zoomLevel - magnifierSize;
+            }
+            if (bgPosY + magnifierSize > imgRect.height * zoomLevel) {
+                bgPosY = imgRect.height * zoomLevel - magnifierSize;
+            }
 
             magnifier.style.backgroundImage = `url(${img.src})`;
             magnifier.style.backgroundSize = `${imgRect.width * zoomLevel}px ${imgRect.height * zoomLevel}px`;
@@ -229,6 +542,22 @@ function showMagnifier(event) {
 
 document.addEventListener('mousemove', showMagnifier);
 
+/** Copy link to clipboard utility (restored) */
+function copyToClipboard(text) {
+    const tempInput = document.createElement('input');
+    tempInput.style.position = 'absolute';
+    tempInput.style.left = '-9999px';
+    tempInput.value = text;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+}
+
+/**
+ * RESTORED openGallery function with copy link for .jpg, 
+ * plus ccd temp & exposure time lines from formatTitle
+ */
 function openGallery(filePath) {
     if (!galleryOverlay) {
         galleryOverlay = document.createElement('div');
@@ -241,6 +570,8 @@ function openGallery(filePath) {
 
     const fileName = filePath.split('/').pop();
     const formattedTitle = formatTitle(fileName);
+
+    // We'll create a container for the "title lines"
     const titleContainer = document.createElement('div');
     titleContainer.className = 'gallery-title-container';
 
@@ -251,9 +582,15 @@ function openGallery(filePath) {
         titleContainer.appendChild(lineElement);
     });
 
-    // Extract the date and other parts from the filename
+    // Extract the date (YYYYMMDD) from the lines for the copy-link logic
+    // The user previously grabbed a date from something like "YYYY-MM-DD"
+    // Then stripped out dashes => "YYYYMMDD"
+    let date = '';
     const dateLine = formattedTitle.find(line => /\d{4}-\d{2}-\d{2}/.test(line));
-    const date = dateLine ? dateLine.match(/\d{4}-\d{2}-\d{2}/)[0].replace(/-/g, '') : '';
+    if (dateLine) {
+        // e.g. "2025-02-14" => "20250214"
+        date = dateLine.replace(/-/g, '');
+    }
 
     // Only show the copy link for .jpg files
     if (fileName.endsWith('.jpg')) {
@@ -263,7 +600,7 @@ function openGallery(filePath) {
         copyLink.className = 'copy-link';
         copyLink.addEventListener('click', function (event) {
             event.preventDefault();
-            const imageName = fileName.split('.')[0];
+            // The user’s old logic used "1-YYYYMMDD" in the link
             const url = `https://hatops.astro.princeton.edu/hatpi/1-${date}/${fileName}`;
             copyToClipboard(url);
             copyLink.innerText = 'Copied ✅';
@@ -274,15 +611,30 @@ function openGallery(filePath) {
 
     let content;
     const fileType = filePath.split('.').pop();
-    currentGalleryFiles = document.querySelectorAll(fileType === 'html' ? '.plot-list .file-item' : (fileType === 'mp4' ? '.movies .file-item' : '.images .file-item'));
-    currentGalleryFiles = Array.from(currentGalleryFiles).filter(item => item.style.display !== 'none').map(item => item.querySelector('a'));
-    currentGalleryIndex = currentGalleryFiles.findIndex(file => file.getAttribute('onclick').includes(filePath));
+
+    // Identify which set of .file-item links to get for left/right nav
+    currentGalleryFiles = document.querySelectorAll(
+        fileType === 'html'
+            ? '.plot-list .file-item'
+            : (fileType === 'mp4'
+                ? '.movies .file-item'
+                : '.images .file-item'
+            )
+    );
+    currentGalleryFiles = Array.from(currentGalleryFiles)
+        .filter(item => item.style.display !== 'none')
+        .map(item => item.querySelector('a'));
+
+    currentGalleryIndex = currentGalleryFiles.findIndex(file =>
+        file.getAttribute('onclick') && file.getAttribute('onclick').includes(filePath)
+    );
 
     if (currentGalleryIndex === -1) {
         console.error('File not found in list:', filePath);
         return;
     }
 
+    // Build our overlay content
     if (fileType === 'html') {
         content = document.createElement('iframe');
         content.src = filePath;
@@ -297,10 +649,12 @@ function openGallery(filePath) {
         content.src = filePath;
         content.className = 'gallery-content';
     }
+
+    // If there's an error loading the resource, fallback
     content.onerror = () => {
         console.error('Error loading file:', filePath);
         content.alt = 'Failed to load';
-        content.src = 'path_to_placeholder_image.jpg'; 
+        content.src = '/hatpi/static/placeholder.jpg';
     };
 
     // Function to close gallery overlay
@@ -319,13 +673,14 @@ function openGallery(filePath) {
     closeButton.className = "closeButton";
     closeButton.onclick = closeGalleryOverlay;
 
-    // Keydown listener for escape key
+    // Keydown listener for Escape key
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             closeGalleryOverlay();
         }
-    });
+    }, { once: true });
 
+    // Comments + nav container
     const commentContainer = document.createElement('div');
     commentContainer.className = 'comment-container';
 
@@ -345,8 +700,8 @@ function openGallery(filePath) {
     defaultOption.selected = true;
     authorDropdown.appendChild(defaultOption);
 
-    // authors for options
-    const authors = ['Anthony', 'Antoine', 'Attila', 'Gaspar', 'Geert Jan', 'Joel', 'Zoli', 'Guest']
+    // authors (example list, add any missing names)
+    const authors = ['Anthony', 'Antoine', 'Attila', 'Gaspar', 'Geert Jan', 'Joel', 'Zoli', 'Guest'];
     authors.forEach(author => {
         const option = document.createElement('option');
         option.value = author;
@@ -363,6 +718,7 @@ function openGallery(filePath) {
     commentContainer.appendChild(authorDropdown);
     commentContainer.appendChild(submitButton);
 
+    // Left/right nav arrows
     const createArrow = (direction) => {
         const arrow = document.createElement('a');
         arrow.innerText = direction === -1 ? '❮' : '❯';
@@ -379,6 +735,7 @@ function openGallery(filePath) {
     navContainer.appendChild(leftArrow);
     navContainer.appendChild(rightArrow);
 
+    // Construct overall content container
     const contentContainer = document.createElement('div');
     contentContainer.className = 'content-container';
 
@@ -392,7 +749,7 @@ function openGallery(filePath) {
     rightComments.appendChild(commentContainer);
     rightComments.appendChild(navContainer);
 
-    // Only add the instructionsContainer if the file type is .jpg
+    // Only add instructions if the file type is .jpg
     if (fileType === 'jpg') {
         const instructionsContainer = document.createElement('div');
         instructionsContainer.className = 'instructions-container';
@@ -412,57 +769,44 @@ function openGallery(filePath) {
 
     adjustGalleryContent();
 
+    // If it's a JPG, set up the drawing canvas
     if (fileType === 'jpg') {
         addCanvasOverlay(content);
     }
 }
 
-
-function copyToClipboard(text) {
-    const tempInput = document.createElement('input');
-    tempInput.style.position = 'absolute';
-    tempInput.style.left = '-9999px';
-    tempInput.value = text;
-    document.body.appendChild(tempInput);
-    tempInput.select();
-    document.execCommand('copy');
-    document.body.removeChild(tempInput);
-}
-
-
-
-
-
+/**
+ * Submit comment or markup to the server
+ */
 function submitCommentOrMarkup(filePath, comment, author) {
     if (!comment.trim()) {
         alert('Comment required to submit.');
         return;
     }
-
     if (!author) {
-        alert('Please select an author.')
+        alert('Please select an author.');
         return;
     }
 
     const canvas = document.getElementById('drawingCanvas');
     const imageElement = document.querySelector('.gallery-content');
 
-    if (drawingOccurred && canvas && imageElement) { // Check if drawing occurred
+    if (drawingOccurred && canvas && imageElement) {
+        // We have drawn on the canvas
         const offScreenCanvas = document.createElement('canvas');
         offScreenCanvas.width = imageElement.naturalWidth;
         offScreenCanvas.height = imageElement.naturalHeight;
         const offScreenCtx = offScreenCanvas.getContext('2d');
 
         offScreenCtx.drawImage(imageElement, 0, 0, offScreenCanvas.width, offScreenCanvas.height);
-        offScreenCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, offScreenCanvas.width, offScreenCanvas.height);
+        offScreenCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height,
+            0, 0, offScreenCanvas.width, offScreenCanvas.height);
 
         const dataURL = offScreenCanvas.toDataURL('image/jpeg', 1.0);
 
         fetch('/hatpi/api/save_markups', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 fileName: filePath.split('/').pop(),
                 imageData: dataURL,
@@ -471,65 +815,66 @@ function submitCommentOrMarkup(filePath, comment, author) {
                 markup_true: '✏️'
             }),
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                alert('Markups and comment saved successfully!');
-                loadComments();
-                resetDrawingOccurred(); // Reset flag after successful submission
-            } else {
-                alert('Failed to save markups and comment.');
-            }
-        })
-        .catch(error => {
-            console.error('Error saving markups:', error);
-            alert('Error saving markups and comment.');
-        });
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Markups and comment saved successfully!');
+                    loadComments();
+                    resetDrawingOccurred();
+                } else {
+                    alert('Failed to save markups and comment.');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving markups:', error);
+                alert('Error saving markups and comment.');
+            });
     } else {
-        // Submit comment only
+        // No drawing, just submit comment
         fetch('/hatpi/submit_comment', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
                 fileName: filePath.split('/').pop(),
                 filePath,
                 comment,
-                author: author
-             }),
+                author
+            }),
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                alert('Comment submitted successfully!');
-                loadComments();
-                resetDrawingOccurred(); // Reset flag after successful submission
-            } else {
-                alert('Failed to submit comment.');
-            }
-        })
-        .catch(error => {
-            console.error('Error submitting comment:', error);
-            alert('Error submitting comment.');
-        });
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert('Comment submitted successfully!');
+                    loadComments();
+                    resetDrawingOccurred();
+                } else {
+                    alert('Failed to submit comment.');
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting comment:', error);
+                alert('Error submitting comment.');
+            });
     }
 }
 
 function resetDrawingOccurred() {
-    drawingOccurred = false; // Reset the drawing flag
+    drawingOccurred = false;
 }
 
+/**
+ * Add a canvas overlay for drawing if it's a JPG
+ */
 function addCanvasOverlay(imageElement) {
     if (imageElement.complete) {
         setupCanvas(imageElement);
@@ -578,7 +923,7 @@ function setupCanvas(imageElement) {
     canvas.addEventListener('mousedown', (e) => {
         if (drawingActive) {
             drawing = true;
-            drawingOccurred = true; // Set the flag when drawing starts
+            drawingOccurred = true;
             const { x, y } = getCanvasCoordinates(e);
             ctx.beginPath();
             ctx.moveTo(x, y);
@@ -602,97 +947,116 @@ function setupCanvas(imageElement) {
     });
 }
 
-document.addEventListener('keydown', handleKeyDown);
-document.addEventListener('keyup', handleKeyUp);
-document.addEventListener('mousemove', showMagnifier);
-
+/**
+ * Format filename to include ccd temp & exposure time lines (restored),
+ * plus date, type, IHU, etc.
+ */
 function formatTitle(fileName) {
-    const parts = fileName.split('_');
     let titleLines = [];
+    let dateStr = '';
+    let typeStr = '';
+    let ihuStr = '';
 
+    // 1) Extract date => "YYYY-MM-DD"
+    const dateMatch = fileName.match(/(\d{4})(\d{2})(\d{2})/);
+    if (dateMatch) {
+        dateStr = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+    }
+
+    // 2) IHU => "IHU-01" etc.
+    const ihuMatch = fileName.match(/ihu-(\d+)/i);
+    if (ihuMatch) {
+        ihuStr = `IHU-${ihuMatch[1].padStart(2, '0')}`;
+    } else {
+        // fallback if the name has "_(\d+)_"
+        const underscoreMatch = fileName.match(/_(\d+)_/);
+        if (underscoreMatch) {
+            ihuStr = `IHU-${underscoreMatch[1].padStart(2, '0')}`;
+        }
+    }
+
+    // 3) Decide "type" by extension & known substrings
     if (fileName.endsWith('.mp4')) {
-        const dateMatch = fileName.match(/(\d{4})(\d{2})(\d{2})/);
-        const ihuMatch = fileName.match(/_(\d+)_/); 
-        let description = '';
-
+        // It's a movie
         if (fileName.includes('subframe_stamps_movie')) {
-            description = 'subframe stamps';
+            typeStr = 'subframe stamps';
         } else if (fileName.includes('subframe_movie')) {
-            description = 'subframe';
+            typeStr = 'subframe';
         } else if (fileName.includes('calframe_stamps_movie')) {
-            description = 'calframe stamps';
+            typeStr = 'calframe stamps';
         } else if (fileName.includes('calframe_movie')) {
-            description = 'calframe';
+            typeStr = 'calframe';
         } else {
-            description = 'unknown';
+            typeStr = 'movie';
         }
-
-        if (description) {
-            titleLines.push(description);
-        }
-
-        if (ihuMatch) {
-            titleLines.push(`ihu-${ihuMatch[1]}`);
-        }
-
-        if (dateMatch) {
-            titleLines.push(`${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`);
+    } else if (fileName.endsWith('.html')) {
+        // It's a plot
+        if (fileName.includes('aper_phot_quality')) {
+            typeStr = 'Aper Phot Quality';
+        } else if (fileName.includes('astrometry_sip_quality')) {
+            typeStr = 'Astrometry SIP Quality';
+        } else if (fileName.includes('astrometry_wcs_quality')) {
+            typeStr = 'Astrometry WCS Quality';
+        } else if (fileName.includes('calframe_quality')) {
+            typeStr = 'Calframe Quality';
+        } else if (fileName.includes('ihu_status')) {
+            typeStr = 'IHU Status';
+        } else if (fileName.includes('psf_sources_model')) {
+            typeStr = 'PSF Sources Model';
+        } else if (fileName.includes('subframe_quality')) {
+            typeStr = 'Subframe Quality';
+        } else {
+            typeStr = 'Station Status';
         }
     } else {
+        // Assume a calibration JPG
         if (fileName.includes('masterdark')) {
-            titleLines.push('dark');
+            typeStr = 'dark';
         } else if (fileName.includes('masterbias')) {
-            titleLines.push('bias');
+            typeStr = 'bias';
         } else if (fileName.includes('masterflat') && fileName.includes('-ss')) {
-            titleLines.push('flat-ss');
+            typeStr = 'flat-ss';
+        } else if (fileName.includes('masterflat') && fileName.includes('-ls')) {
+            typeStr = 'flat-ls';
+        } else if (fileName.includes('masterglobflat') && fileName.includes('-ss')) {
+            typeStr = 'globflat-ss';
         } else if (fileName.includes('masterglobflat') && fileName.includes('-ls')) {
-            titleLines.push('flat-ls');
+            typeStr = 'globflat-ls';
         } else {
-            titleLines.push(parts[0]);
+            typeStr = 'image';
         }
+    }
 
-        const ihuMatch = fileName.match(/ihu-\d+/);
-        if (ihuMatch) {
-            titleLines.push(ihuMatch[0]);
-        }
+    // 4) Push date/type/ihu in your desired order
+    if (dateStr) titleLines.push(dateStr);
+    if (typeStr) titleLines.push(typeStr);
+    if (ihuStr) titleLines.push(ihuStr);
 
-        const dateMatch = fileName.match(/\d{8}/);
-        const dateNumberMatch = fileName.match(/(\d{8})-(\d+)/);
-        if (dateMatch && dateNumberMatch) {
-            const date = dateMatch[0];
-            const number = dateNumberMatch[2];
-            titleLines.push(`${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)} | ${number}`);
-        }
+    // 5) Add back ccd temp & exposure time if found
+    const exptimeMatch = fileName.match(/EXPTIME\d+\.\d+/);
+    if (exptimeMatch) {
+        titleLines.push(`exposure time: ${exptimeMatch[0].replace('EXPTIME', '')}`);
+    }
+    const tempMatch = fileName.match(/CCDTEMP-?\d+\.\d+/);
+    if (tempMatch) {
+        titleLines.push(`ccd temp: ${tempMatch[0].replace('CCDTEMP', '')}`);
+    }
 
-        const exptimeMatch = fileName.match(/EXPTIME\d+\.\d+/);
-        if (exptimeMatch) {
-            titleLines.push(`exposure time: ${exptimeMatch[0].replace('EXPTIME', '')}`);
-        }
-
-        const tempMatch = fileName.match(/CCDTEMP-?\d+\.\d+/);
-        if (tempMatch) {
-            titleLines.push(`ccd temp: ${tempMatch[0].replace('CCDTEMP', '')}`);
-        }
+    // If still empty, just raw filename
+    if (!titleLines.length) {
+        return [fileName];
     }
 
     return titleLines;
 }
 
-function loadPlot(filePath) {
-    const script = document.createElement('script');
-    script.src = "https://cdn.bokeh.org/bokeh/release/bokeh-3.1.0.min.js";
-    script.onload = () => {
-        Bokeh.set_log_level("warning");
-        openGallery(filePath);
-    };
-    document.head.appendChild(script);
-}
-
+/** Load and display comments (unchanged) */
 function loadComments() {
     fetch('/hatpi/comments.json')
         .then(response => response.json())
         .then(data => {
             const commentsContainer = document.querySelector('.comments-container');
+            if (!commentsContainer) return;
             commentsContainer.innerHTML = '';
 
             const commentsArray = Object.entries(data).map(([key, comment]) => ({
@@ -709,6 +1073,7 @@ function loadComments() {
 
                 const commentItem = document.createElement('div');
                 commentItem.className = 'comment-item';
+                commentItem.setAttribute('data-comment-id', comment.uniqueKey);
                 commentItem.innerHTML = `
                     <div class="comment-header">
                         <span class="comment-filename">
@@ -720,6 +1085,7 @@ function loadComments() {
                     </div>
                     <div class="comment-body">
                         <p>${comment.comment}</p>
+                        <button class="delete-comment-button" onclick="deleteComment('${comment.uniqueKey}')">Delete</button>
                     </div>
                 `;
 
@@ -736,44 +1102,41 @@ document.addEventListener('DOMContentLoaded', () => {
     loadComments();
 });
 
+/**
+ * Delete a comment (server call)
+ */
 function deleteComment(commentId) {
-    // show a confirmation popup
     const isConfirmed = confirm('Are you sure you want to delete this comment?');
-
-    // confirmation logic
     if (isConfirmed) {
         fetch('/hatpi/delete_comment', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ commentId: commentId }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ commentId }),
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                // Remove the comment element from the DOM
-                const commentElement = document.querySelector(`.comment-item[data-comment-id='${commentId}']`);
-                if (commentElement) {
-                    commentElement.remove();
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            } else {
-                alert('Failed to delete comment.');
-            }
-        })
-        .catch(error => {
-            console.error('Error deleting comment:', error);
-            alert('Error deleting comment.');
-        });
-
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    const commentElement = document.querySelector(`.comment-item[data-comment-id='${commentId}']`);
+                    if (commentElement) {
+                        commentElement.remove();
+                    }
+                } else {
+                    alert('Failed to delete comment.');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting comment:', error);
+                alert('Error deleting comment.');
+            });
     }
 }
 
+/** Filter calibration images */
 function filterImages(filter) {
     const filterButtons = document.querySelectorAll('#image-filters .filter-button');
     filterButtons.forEach(button => {
@@ -799,18 +1162,13 @@ function filterImages(filter) {
         return filename.includes(filter);
     });
 
-    filteredItems.sort((a, b) => {
-        const dateA = new Date(a.querySelector('.file-date').textContent);
-        const dateB = new Date(b.querySelector('.file-date').textContent);
-        return dateB - dateA;
-    });
-
     imageItems.forEach(item => item.style.display = 'none');
     filteredItems.forEach(item => item.style.display = 'flex');
 
     applyAlternatingColors('.images');
 }
 
+/** Filter calibration HTML files */
 function filterHtmlFiles(filter) {
     const filterButtons = document.querySelectorAll('#html-filters .filter-button');
     filterButtons.forEach(button => {
@@ -831,18 +1189,13 @@ function filterHtmlFiles(filter) {
         return filter === 'all' || filename.includes(filter);
     });
 
-    filteredItems.sort((a, b) => {
-        const dateA = new Date(a.querySelector('.file-date').textContent);
-        const dateB = new Date(b.querySelector('.file-date').textContent);
-        return dateB - dateA;
-    });
-
     htmlFileItems.forEach(item => item.style.display = 'none');
     filteredItems.forEach(item => item.style.display = 'flex');
 
     applyAlternatingColors('.plot-list');
 }
 
+/** Filter calibration movies */
 function filterMovies(filter) {
     const filterButtons = document.querySelectorAll('#movie-filters .filter-button');
     filterButtons.forEach(button => {
@@ -860,10 +1213,8 @@ function filterMovies(filter) {
     const movieItems = document.querySelectorAll('.movies .file-item');
     const filteredItems = Array.from(movieItems).filter(item => {
         const filename = item.getAttribute('data-filename').toLowerCase();
-
-        if (filter === 'all') {
-            return true;
-        } else if (filter === 'subframe') {
+        if (filter === 'all') return true;
+        if (filter === 'subframe') {
             return filename.includes('subframe') && !filename.includes('subframe_stamps');
         } else if (filter === 'subframe-stamps') {
             return filename.includes('subframe_stamps');
@@ -875,18 +1226,13 @@ function filterMovies(filter) {
         return false;
     });
 
-    filteredItems.sort((a, b) => {
-        const dateA = new Date(a.querySelector('.file-date').textContent);
-        const dateB = new Date(b.querySelector('.file-date').textContent);
-        return dateB - dateA;
-    });
-
     movieItems.forEach(item => item.style.display = 'none');
     filteredItems.forEach(item => item.style.display = 'flex');
 
     applyAlternatingColors('.movies');
 }
 
+/** Adjust overlay content on window resize */
 function adjustGalleryContent() {
     const galleryContent = document.querySelector('.gallery-content');
     const overlayIframe = document.querySelector('.overlay-iframe');
@@ -896,7 +1242,6 @@ function adjustGalleryContent() {
         galleryContent.style.maxHeight = '100%';
         galleryContent.style.objectFit = 'contain';
     }
-
     if (overlayIframe) {
         overlayIframe.style.width = '100%';
         overlayIframe.style.height = '100%';

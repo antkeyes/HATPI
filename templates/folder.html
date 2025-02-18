@@ -13,7 +13,10 @@
         <div class="stars"></div>
         <div class="twinkling"></div>
     </div>
-    <h1 class="page-title">{{ folder_name }}</h1>
+
+    <!-- Store original folder_name in a data attribute so we can retrieve it in JS -->
+    <h1 class="page-title" data-folder="{{ folder_name }}">{{ folder_name | format_folder }}</h1>
+
     <div class="pills-container">
         <div class="pill-container-unique">
             <button class="pill-button-unique active" onclick="showTab('images', event)">Images</button>
@@ -22,9 +25,18 @@
         </div>
         <a href="https://hatops.astro.princeton.edu/hatpi" class="back-to-home">🏠</a>
     </div>
+
+    <!-- New Data Mode Selector -->
+    <div id="data-mode-buttons" class="mode-buttons" style="margin: 20px 0 20px 20%; text-align: left;">
+        <button id="calibrationModeButton" class="mode-button active" onclick="switchDataMode('calibration')">Calibration</button>
+        <button id="redSubModeButton" class="mode-button" onclick="switchDataMode('redsub')">Reduction & Subtraction</button>
+    </div>
+
     <div class="folder-content-container">
         <div class="filter-buttons-container">
+            <!-- Filter Buttons Container (will be switched between Calibration vs RED/SUB) -->
             <div class="filter-buttons" id="image-filters">
+                <!-- Default calibration buttons -->
                 <button class="filter-button active" onclick="filterImages('all')">All</button>
                 <button class="filter-button" onclick="filterImages('bias')">Bias</button>
                 <button class="filter-button" onclick="filterImages('dark')">Dark</button>
@@ -32,7 +44,8 @@
                 <!-- <button class="filter-button" onclick="filterImages('flat-ls')">Flat ls</button> -->
                 <button class="filter-button" onclick="filterImages('globflat-ss')">Globflat ss</button>
                 <button class="filter-button" onclick="filterImages('globflat-ls')">Globflat ls</button>
-            </div>            
+            </div>
+
             <div class="filter-buttons hidden" id="html-filters">
                 <button class="filter-button active" onclick="filterHtmlFiles('all')">All</button>
                 <button class="filter-button" onclick="filterHtmlFiles('aper_phot_quality')">Aper Phot Quality</button>
@@ -43,6 +56,7 @@
                 <button class="filter-button" onclick="filterHtmlFiles('psf_sources_model')">PSF Sources Models</button>
                 <button class="filter-button" onclick="filterHtmlFiles('subframe_quality')">Subframe Quality</button>
             </div>
+
             <div class="filter-buttons hidden" id="movie-filters">
                 <button class="filter-button active" onclick="filterMovies('all')">All</button>
                 <button class="filter-button" onclick="filterMovies('subframe')">Subframe</button>
@@ -51,7 +65,13 @@
                 <button class="filter-button" onclick="filterMovies('calframe-stamps')">Calframe Stamps</button>
             </div>
         </div>
+
+        <!-- The images-list container where images normally appear -->
         <div class="images-list-container">
+            <!-- IHU grid for RED/SUB mode (hidden by default) -->
+            <div id="grid-container-redsub" style="display: none;"></div>
+
+            <!-- Calibration (default) images tab -->
             <div id="images" class="tab-content active">
                 <div class="images-list">
                     <div class="images">
@@ -59,7 +79,10 @@
                             {% if image.endswith('.jpg') %}
                                 <div class="file-item" data-filename="{{ image }}">
                                     <div class="file-name">
-                                        <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ image }}'); return false;">{{ image | format_filename }}</a>
+                                        <!-- Onclick calls openGallery() so it uses the overlay -->
+                                        <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ image }}'); return false;">
+                                            {{ image | format_filename }}
+                                        </a>
                                     </div>
                                     <div class="file-date">{{ creation_date }}</div>
                                 </div>
@@ -68,27 +91,35 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Plots tab -->
             <div id="html-files" class="tab-content">
                 <div class="html-files plot-list">
                     {% for html_file, creation_date in html_files %}
                         {% if html_file.endswith('.html') %}
                             <div class="file-item" data-filename="{{ html_file }}">
                                 <div class="file-name">
-                                    <a href="#" onclick="loadPlot('/hatpi/{{ folder_name }}/{{ html_file }}'); return false;">{{ html_file | format_filename }}</a>
+                                    <a href="#" onclick="loadPlot('/hatpi/{{ folder_name }}/{{ html_file }}'); return false;">
+                                        {{ html_file | format_filename }}
+                                    </a>
                                 </div>
                                 <div class="file-date">{{ creation_date }}</div>
                             </div>
                         {% endif %}
                     {% endfor %}
                 </div>
-            </div>            
+            </div>
+
+            <!-- Movies tab -->
             <div id="movies" class="tab-content">
                 <div class="movies">
                     {% for movie, creation_date in movies %}
                         {% if movie.endswith('.mp4') %}
                             <div class="file-item" data-filename="{{ movie }}">
                                 <div class="file-name">
-                                    <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ movie }}'); return false;">{{ movie | format_filename }}</a>
+                                    <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ movie }}'); return false;">
+                                        {{ movie | format_filename }}
+                                    </a>
                                 </div>
                                 <div class="file-date">{{ creation_date }}</div>
                             </div>
@@ -98,13 +129,19 @@
             </div>
         </div>
     </div>
+
     <script src="/hatpi/static/scripts.js"></script>
     <script>
+        // On DOMContentLoaded, adjust the page title (IHU color logic) and load the default calibration folder.
         document.addEventListener('DOMContentLoaded', function() {
             const pageTitle = document.querySelector('.page-title');
             if (pageTitle) {
                 const ihuMatch = pageTitle.innerText.match(/^ihu-(\d+)$/);
-                const dateMatch = pageTitle.innerText.match(/^1-(\d{4})(\d{2})(\d{2})$/);
+                const dateMatch = pageTitle.innerText.match(/^(\d{4})-(\d{2})-(\d{2})$/); 
+                /* 
+                  If your 'format_folder_name' filter turned "1-20250213" into "2025-02-13", 
+                  then 'pageTitle.innerText' might be "2025-02-13" 
+                */
 
                 if (ihuMatch) {
                     const ihuNumber = parseInt(ihuMatch[1], 10);
@@ -128,14 +165,17 @@
                         pageTitle.style.backgroundColor = backgroundColor;
                     }
                 } else if (dateMatch) {
+                    // Already in the format "YYYY-MM-DD"
                     const formattedDate = `📂 ${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
                     pageTitle.innerText = formattedDate;
                     pageTitle.classList.add('date-title');
                 }
             }
-            loadFolder('{{ folder_name }}');
+            // Load calibration mode images by default.
+            loadFolder(document.querySelector('.page-title').getAttribute('data-folder'));
         });
 
+        // loadPlot remains unchanged
         function loadPlot(filePath) {
             var script = document.createElement('script');
             script.src = "https://cdn.bokeh.org/bokeh/release/bokeh-3.1.0.min.js";

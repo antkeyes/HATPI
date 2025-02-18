@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 BASE_DIR = '/nfs/hatops/ar0/hatpi-website'
-EXCLUDE_FOLDERS = set(['download_sandbox' ,'static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images'])
+EXCLUDE_FOLDERS = set(['download_sandbox' ,'static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images', 'SUB', 'RED'])
 
 for folder in os.listdir(BASE_DIR):
     if folder.startswith('ihu'):
@@ -182,7 +182,7 @@ def folder(folder_name):
     images, html_files, movies = get_cached_files(folder_path)
     return render_template('folder.html', images=images, html_files=html_files, movies=movies, folder_name=folder_name)
 
-@app.route('/api/folder/<folder_name>')
+@app.route('/api/folder/<path:folder_name>')
 def api_folder(folder_name):
     folder_path = os.path.join(BASE_DIR, folder_name)
     images, html_files, movies = get_cached_files(folder_path)
@@ -197,9 +197,7 @@ def extract_ihu_number(filename):
         return int(match.group(1))
     return float('inf')
 
-###############################################################################
-# ADD THIS HELPER FUNCTION (if you haven't already):
-###############################################################################
+
 def parse_file_date(filename):
     """
     Extract a date (YYYYMMDD) from the filename and return a datetime object.
@@ -258,7 +256,7 @@ def get_cached_files(folder_path):
 
     # -----------------------------------------------------------
     #   If it's a "Dates" folder (e.g. "/nfs/hatops/ar0/hatpi-website/1-20250105")
-    #   => Use your original logic
+    #   => Use original logic
     # -----------------------------------------------------------
     elif folder_path.startswith('/nfs/hatops/ar0/hatpi-website/1-'):
         images.sort(key=lambda x: extract_ihu_number(x[0]))
@@ -270,7 +268,7 @@ def get_cached_files(folder_path):
 
     # -----------------------------------------------------------
     #   Otherwise, fallback to creation-date sorting
-    #   => (Your original else block)
+    #   => (original else block)
     # -----------------------------------------------------------
     else:
         images.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
@@ -394,6 +392,62 @@ def delete_comment():
             save_comments(comments)
             return jsonify({'success': True})
     return jsonify({'success': False})
+
+@app.route('/RED/<path:subpath>')
+def serve_red_path(subpath):
+    """
+    Example: subpath might be "1-20250216/ihu50/1-487919_50-red-bin4.jpg"
+    We'll build the real path under /nfs/hatops/ar0/hatpi-website/RED/...
+    """
+    import os
+
+    # The base for RED is: /nfs/hatops/ar0/hatpi-website/RED
+    red_base = os.path.join(BASE_DIR, 'RED')
+    # Then we join subpath => /nfs/hatops/ar0/hatpi-website/RED/1-20250216/ihu50/1-4879...
+    target_dir = os.path.join(red_base, os.path.dirname(subpath))
+    filename = os.path.basename(subpath)
+
+    # Resolve symlinks
+    real_dir = os.path.realpath(target_dir)
+    full_file_path = os.path.join(real_dir, filename)
+
+    app.logger.info(f"Serving RED file: {full_file_path}")
+    if not os.path.isfile(full_file_path):
+        return "Not Found", 404
+
+    # Option 1: use send_file
+    from flask import send_file
+    return send_file(full_file_path)
+
+    # or Option 2: use send_from_directory if you prefer
+    # from flask import send_from_directory
+    # return send_from_directory(real_dir, filename, follow_symlinks=True)
+
+
+@app.route('/SUB/<path:subpath>')
+def serve_sub_path(subpath):
+    """
+    Example: subpath might be "1-20250216/ihu50/1-222222_50-sub-bin4.jpg"
+    We'll build the real path under /nfs/hatops/ar0/hatpi-website/SUB/...
+    """
+    import os
+
+    sub_base = os.path.join(BASE_DIR, 'SUB')
+    target_dir = os.path.join(sub_base, os.path.dirname(subpath))
+    filename = os.path.basename(subpath)
+
+    real_dir = os.path.realpath(target_dir)
+    full_file_path = os.path.join(real_dir, filename)
+
+    app.logger.info(f"Serving SUB file: {full_file_path}")
+    if not os.path.isfile(full_file_path):
+        return "Not Found", 404
+
+    from flask import send_file
+    return send_file(full_file_path)
+
+
+
 
 def get_creation_date(file_path):
     return datetime.datetime.fromtimestamp(os.path.getctime(file_path)).strftime('%Y-%m-%d %H:%M:%S')
