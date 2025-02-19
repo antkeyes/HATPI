@@ -64,6 +64,7 @@ function switchDataMode(mode) {
     const gridContainer = document.getElementById('grid-container-redsub');
     const imagesContainer = document.querySelector('.images-list .images');
     const folderName = document.querySelector('.page-title').getAttribute('data-folder');
+    const isIHU = folderName.toLocaleLowerCase().startsWith('ihu-');
 
     if (mode === 'calibration') {
         calibrationBtn.classList.add('active');
@@ -109,10 +110,117 @@ function switchDataMode(mode) {
         `;
 
         imagesContainer.innerHTML = '';
-        gridContainer.style.display = 'block';
-        createRedSubIHUGrid();
+
+        if (isIHU) {
+            gridContainer.style.display = 'none';
+            window.selectedCamera = folderName.replace("ihu-", "ihu");
+            listRedSubDatesForIhu('RED');
+        } else {
+            gridContainer.style.display = 'block';
+            createRedSubIHUGrid();
+        }
     }
 }
+
+// Helper: Convert "1-YYYYMMDD" to "YYYY-MM-DD"
+function formatDateFolderName(folderName) {
+    // Check if the folder name starts with "1-" and has a total length of 10 characters
+    if (folderName.startsWith("1-") && folderName.length === 10) {
+        let digits = folderName.substring(2); // Get the "YYYYMMDD" part
+        return digits.slice(0, 4) + '-' + digits.slice(4, 6) + '-' + digits.slice(6);
+    }
+    return folderName; // Fallback if the format is unexpected
+}
+
+
+function listRedSubDatesForIhu(redOrSub) {
+    const imagesContainer = document.querySelector('.images-list .images');
+    imagesContainer.innerHTML = '';
+    removeBackButton(); // Remove any existing “⟵ Back” link
+
+    // Fetch subfolders from the top-level RED or SUB directory
+    const subfoldersApi = `/hatpi/api/subfolders/${redOrSub}`;
+    fetch(subfoldersApi)
+        .then(r => r.json())
+        .then(data => {
+            const subfolders = (data.subfolders || []).reverse();
+            if (!subfolders.length) {
+                imagesContainer.innerHTML = `<p>No date subfolders found for ${redOrSub}</p>`;
+                return;
+            }
+            // For each date (e.g. "1-20250203"), create a link
+            subfolders.forEach(dateName => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <div class="file-name">
+                        <a href="#" onclick="listRedSubFilesForIhu('${redOrSub}','${dateName}'); return false;">
+                            ${formatDateFolderName(dateName)}
+                        </a>
+                    </div>
+                    <div class="file-date"></div>
+                `;
+                imagesContainer.appendChild(div);
+            });
+            applyAlternatingColors('.images');
+        })
+        .catch(e => console.error("Error listing subfolders:", e));
+}
+
+function listRedSubFilesForIhu(redOrSub, dateName) {
+    const imagesContainer = document.querySelector('.images-list .images');
+    imagesContainer.innerHTML = '';
+    createBackButton(() => listRedSubDatesForIhu(redOrSub));
+
+    // Use the globally stored camera folder (e.g. "ihu48")
+    const cameraFolder = window.selectedCamera;
+    const apiPath = `${redOrSub}/${dateName}/${cameraFolder}`;
+
+    fetch(`/hatpi/api/folder/${apiPath}`)
+        .then(r => r.json())
+        .then(data => {
+            const images = data.images || [];
+            if (!images.length) {
+                imagesContainer.innerHTML = `<p>No .jpg files found in ${dateName}</p>`;
+                return;
+            }
+            // Sort images by frame number in ascending order.
+            images.sort((a, b) => {
+                // a[0] and b[0] are the filenames.
+                const matchA = a[0].match(/1-(\d+)_/);
+                const matchB = b[0].match(/1-(\d+)_/);
+                const frameA = matchA ? parseInt(matchA[1], 10) : Infinity;
+                const frameB = matchB ? parseInt(matchB[1], 10) : Infinity;
+                return frameA - frameB;
+            });
+
+            images.forEach(img => {
+                const fileName = img[0];
+                const fileDate = img[1];
+                const fullPath = `/${redOrSub}/${dateName}/${cameraFolder}/${fileName}`;
+                const prettyName = buildRedSubLinkText(dateName, redOrSub, cameraFolder, fileName);
+
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.setAttribute('data-filename', fileName);
+                div.innerHTML = `
+                    <div class="file-name">
+                        <a href="#" onclick="openGallery('/hatpi${fullPath}'); return false;">
+                            ${prettyName}
+                        </a>
+                    </div>
+                    <div class="file-date">${fileDate}</div>
+                `;
+                imagesContainer.appendChild(div);
+            });
+            applyAlternatingColors('.images');
+        })
+        .catch(e => {
+            console.error('Error listing files:', e);
+            imagesContainer.innerHTML = `<p>Failed to list files for ${apiPath}</p>`;
+        });
+}
+
 
 /**
  * Switch between "Reduction" and "Subtraction" within RED/SUB mode
@@ -127,10 +235,207 @@ function switchRedSubFilter(selectedType) {
         clickedButton.classList.add('active');
     }
 
+    const folderName = document.querySelector('.page-title').getAttribute('data-folder');
+    const isIHU = folderName.toLowerCase().startsWith('ihu-');
+    const redOrSub = (selectedType === 'reduction') ? 'RED' : 'SUB';
     const imagesContainer = document.querySelector('.images-list .images');
     imagesContainer.innerHTML = '';
 
+    if (isIHU) {
+        // In IHU mode, use our new functions
+        window.selectedCamera = folderName.replace("ihu-", "ihu");
+        listRedSubDatesForIhu(redOrSub);
+    } else {
+        // Otherwise, keep your existing flow (if any)
+        // For example, you might call listRedSubDates(folderName, redOrSub)
+    }
 }
+
+
+function listRedSubDates(folderName, redOrSub) {
+    const imagesContainer = document.querySelector('.images-list .images');
+    imagesContainer.innerHTML = '';
+    removeBackButton(); // remove any existing "⟵ Back" link
+
+    const isIHU = folderName.toLowerCase().startsWith('ihu-');
+
+    // If user is on an IHU folder (e.g. "ihu-48"), we ignore it and do /RED or /SUB.
+    // If user is on a date folder (e.g. "1-20250113"), we do "1-20250113/RED"
+    let subfoldersApi;
+    if (isIHU) {
+        subfoldersApi = `/hatpi/api/subfolders/${redOrSub}`;
+    } else {
+        subfoldersApi = `/hatpi/api/subfolders/${folderName}/${redOrSub}`;
+    }
+
+    fetch(subfoldersApi)
+        .then(r => r.json())
+        .then(data => {
+            const subfolders = data.subfolders || [];
+            if (!subfolders.length) {
+                imagesContainer.innerHTML = `<p>No date subfolders found for ${redOrSub}</p>`;
+                return;
+            }
+
+            // For each date subfolder (like "1-20250113"),
+            // we link to listRedSubFiles(...)
+            subfolders.forEach(dateName => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <div class="file-name">
+                        <a href="#" onclick="listRedSubFiles('${folderName}','${redOrSub}','${dateName}'); return false;">
+                            ${dateName}
+                        </a>
+                    </div>
+                    <div class="file-date"></div>
+                `;
+                imagesContainer.appendChild(div);
+            });
+
+            applyAlternatingColors('.images');
+        })
+        .catch(e => console.error("Error listing subfolders:", e));
+}
+
+
+function listRedSubFiles(folderName, redOrSub, dateName) {
+    const imagesContainer = document.querySelector('.images-list .images');
+    imagesContainer.innerHTML = '';
+    createBackButton(() => listRedSubDates(folderName, redOrSub));
+
+    const isIHU = folderName.toLowerCase().startsWith('ihu-');
+
+    // Build the API path
+    let apiPath;
+    if (isIHU) {
+        const bareIhu = folderName.replace("ihu-", "ihu");
+        apiPath = `${redOrSub}/${dateName}/${bareIhu}`;
+    } else {
+        apiPath = `${folderName}/${redOrSub}/${dateName}`;
+    }
+
+    console.log(`[listRedSubFiles] API path is: /hatpi/api/folder/${apiPath}`);
+
+    fetch(`/hatpi/api/folder/${apiPath}`)
+        .then(r => r.json())
+        .then(data => {
+            let images = data.images || [];
+
+            if (!images.length) {
+                imagesContainer.innerHTML = `<p>No .jpg files found in ${dateName}</p>`;
+                return;
+            }
+
+            // *** Sort the images array by frame number (ascending) ***
+            images.sort((a, b) => {
+                // a[0] and b[0] are filenames.
+                let matchA = a[0].match(/1-(\d+)_/);
+                let matchB = b[0].match(/1-(\d+)_/);
+
+                // If the first regex fails, try a fallback that simply grabs digits before an underscore.
+                if (!matchA) {
+                    matchA = a[0].match(/(\d+)_/);
+                }
+                if (!matchB) {
+                    matchB = b[0].match(/(\d+)_/);
+                }
+
+                // If still no matches, let's log them so we see what's going on.
+                if (!matchA && a[0]) {
+                    console.warn(`[listRedSubFiles] Could not find frame for: ${a[0]}`);
+                }
+                if (!matchB && b[0]) {
+                    console.warn(`[listRedSubFiles] Could not find frame for: ${b[0]}`);
+                }
+
+                const frameA = matchA ? parseInt(matchA[1], 10) : Infinity;
+                const frameB = matchB ? parseInt(matchB[1], 10) : Infinity;
+
+                // For debugging, print out the parse results
+                console.log(`Comparing frames: A:${frameA}  B:${frameB}  filenames: "${a[0]}" "${b[0]}"`);
+                return frameA - frameB;
+            });
+
+            // Now build the display.
+            images.forEach(img => {
+                const fileName = img[0];
+                const fileDate = img[1];
+
+                // Build final path
+                let fullPath;
+                if (isIHU) {
+                    const bareIhu = folderName.replace("ihu-", "ihu");
+                    fullPath = `/${redOrSub}/${dateName}/${bareIhu}/${fileName}`;
+                } else {
+                    fullPath = `/${folderName}/${redOrSub}/${dateName}/${fileName}`;
+                }
+
+                // Use your specialized formatting function.
+                const prettyName = buildRedSubLinkText(
+                    dateName,
+                    redOrSub,
+                    isIHU ? folderName.replace("ihu-", "ihu") : folderName,
+                    fileName
+                );
+
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.setAttribute('data-filename', fileName);
+                div.innerHTML = `
+            <div class="file-name">
+                <a href="#" onclick="openGallery('/hatpi${fullPath}'); return false;">
+                    ${prettyName}
+                </a>
+            </div>
+            <div class="file-date">${fileDate}</div>
+          `;
+                imagesContainer.appendChild(div);
+            });
+
+            applyAlternatingColors('.images');
+        })
+        .catch(e => {
+            console.error('Error listing files:', e);
+            imagesContainer.innerHTML = `<p>Failed to list files for ${apiPath}</p>`;
+        });
+}
+
+
+
+
+
+
+function createBackButton(onClickFn) {
+    const imagesContainer = document.querySelector('.images-list .images');
+    const backDiv = document.createElement('div');
+    backDiv.className = 'file-item back-button';  // so it matches your styling
+    backDiv.style.cursor = 'pointer';
+    backDiv.innerHTML = `
+        <div class="file-name">
+          <p>⬅️ Back to Dates</p>
+        </div>
+        <div class="file-date"></div>
+    `;
+    backDiv.addEventListener('click', onClickFn);
+
+    imagesContainer.appendChild(backDiv);
+}
+
+function removeBackButton() {
+    const imagesContainer = document.querySelector('.images-list .images');
+    // remove any "⟵ Back" item if present
+    const backItems = imagesContainer.querySelectorAll('.file-item');
+    backItems.forEach(item => {
+        const fileNameDiv = item.querySelector('.file-name');
+        if (fileNameDiv && fileNameDiv.innerText.includes('Back')) {
+            imagesContainer.removeChild(item);
+        }
+    });
+}
+
+
+
 
 /**
  * Creates the "Sequential" IHU grid layout inside #grid-container-redsub,
@@ -162,7 +467,6 @@ function createRedSubIHUGrid() {
         row.style.display = 'grid';
         row.style.gridTemplateColumns = `repeat(${sequentialRowColumns[i]}, 45px)`;
         row.style.justifyContent = 'center';
-        //horizontal and vertical gaps
         row.style.gap = '3px';
         row.style.marginBottom = '3px';
 
@@ -179,16 +483,18 @@ function createRedSubIHUGrid() {
             button.style.border = 'none';
             button.style.cursor = 'pointer';
 
-            (function (index) {
+            (function (indexValue) {
                 button.addEventListener('click', function () {
-                    const cellNumber = index.toString().padStart(2, '0');
+                    const cellNumber = indexValue.toString().padStart(2, '0');
                     const dateFolder = document.querySelector('.page-title').getAttribute('data-folder');
                     const activeFilterBtn = document.querySelector('#image-filters .filter-button.active');
                     const type = activeFilterBtn ? activeFilterBtn.textContent.toLowerCase() : 'reduction';
-                    const cameraFolder = 'ihu' + cellNumber;
-                    loadRedSubFolder(dateFolder, cameraFolder, type);
 
-                    
+                    // Because physically the folder is named "ihu48" (no dash),
+                    // we do 'ihu' + cellNumber => e.g. 'ihu48'
+                    const cameraFolder = 'ihu' + cellNumber;
+
+                    loadRedSubFolder(dateFolder, cameraFolder, type);
                 });
             })(textIndex);
 
@@ -201,6 +507,7 @@ function createRedSubIHUGrid() {
     }
 }
 
+
 /**
  * Load images for dateFolder, cameraFolder, and type (reduction/subtraction)
  * Then display them in .images-list .images
@@ -208,29 +515,37 @@ function createRedSubIHUGrid() {
 function loadRedSubFolder(dateFolder, cameraFolder, type) {
     const folderPath = `${type === 'reduction' ? 'RED' : 'SUB'}/${dateFolder}/${cameraFolder}`;
     fetch(`/hatpi/api/folder/${folderPath}`)
-      .then(response => {
-        if (!response.ok) throw new Error('Network error');
-        return response.json();
-      })
-      .then(data => {
-        displayRedSubImages(data.images, dateFolder, type, cameraFolder);
-        // After updating the images list, scroll down 100px.
-        const container = document.querySelector('.images-list-container');
-        if (container) {
-          setTimeout(() => {
-            container.scrollTo({ top: 200, behavior: 'smooth' });
-          }, 50);
-        }
-      })
-      .catch(error => console.error('Error loading RED/SUB folder:', error));
-  }
-  
+        .then(response => {
+            if (!response.ok) throw new Error('Network error');
+            return response.json();
+        })
+        .then(data => {
+            displayRedSubImages(data.images, dateFolder, type, cameraFolder);
+            // After updating the images list, scroll down 100px.
+            const container = document.querySelector('.images-list-container');
+            if (container) {
+                setTimeout(() => {
+                    container.scrollTo({ top: 200, behavior: 'smooth' });
+                }, 50);
+            }
+        })
+        .catch(error => console.error('Error loading RED/SUB folder:', error));
+}
+
 
 /**
  * Display loaded RED/SUB images, each with link text like:
  *  "YYYY-MM-DD | reduction | IHU-01 | frame: 485376"
  */
 function displayRedSubImages(images, dateFolder, type, cameraFolder) {
+    images.sort((a, b) => {
+        const matchA = a[0].match(/1-(\d+)_/);
+        const matchB = b[0].match(/1-(\d+)_/);
+        const frameA = matchA ? parseInt(matchA[1], 10) : Infinity;
+        const frameB = matchB ? parseInt(matchB[1], 10) : Infinity;
+        return frameA - frameB;
+    });
+
     const imagesContainer = document.querySelector('.images-list .images');
     imagesContainer.innerHTML = '';
 
@@ -622,8 +937,9 @@ function openGallery(filePath) {
             )
     );
     currentGalleryFiles = Array.from(currentGalleryFiles)
-        .filter(item => item.style.display !== 'none')
-        .map(item => item.querySelector('a'));
+        .map(item => item.querySelector('a'))
+        .filter(a => a && a.style.display !== 'none');
+
 
     currentGalleryIndex = currentGalleryFiles.findIndex(file =>
         file.getAttribute('onclick') && file.getAttribute('onclick').includes(filePath)
@@ -701,7 +1017,7 @@ function openGallery(filePath) {
     authorDropdown.appendChild(defaultOption);
 
     // authors (example list, add any missing names)
-    const authors = ['Anthony', 'Antoine', 'Attila', 'Gaspar', 'Geert Jan', 'Joel', 'Zoli', 'Guest'];
+    const authors = ['Adriana', 'Anthony', 'Antoine', 'Attila', 'Gaspar', 'Geert Jan', 'Joel', 'Zoli', 'Guest'];
     authors.forEach(author => {
         const option = document.createElement('option');
         option.value = author;

@@ -447,6 +447,35 @@ def serve_sub_path(subpath):
     return send_file(full_file_path)
 
 
+@app.route('/api/subfolders/<path:folder_name>')
+def api_subfolders(folder_name):
+    """
+    Returns a JSON list of subfolder names (not files) directly inside 'folder_name'.
+    This is used by the front-end to show "date" subfolders in the IHU folder's RED or SUB directory.
+    E.g. /api/subfolders/ihu-01/RED => ["1-20250213", "1-20250216", ...]
+    """
+    full_path = os.path.join(BASE_DIR, folder_name)
+    if not os.path.isdir(full_path):
+        return jsonify({"subfolders": []})
+
+    try:
+        entries = os.listdir(full_path)
+    except Exception as e:
+        app.logger.error(f"Error listing subfolders in {full_path}: {e}")
+        return jsonify({"subfolders": []})
+
+    # We only want directories (including symlinks that point to directories).
+    subfolders = []
+    for entry in entries:
+        entry_path = os.path.join(full_path, entry)
+        if os.path.isdir(entry_path):
+            subfolders.append(entry)
+
+    # Sort them (reverse=False so you get chronological, if you prefer)
+    subfolders.sort()
+    return jsonify({"subfolders": subfolders})
+
+
 
 
 def get_creation_date(file_path):
