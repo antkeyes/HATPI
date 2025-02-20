@@ -164,17 +164,31 @@ def poll_directory():
             previous_state = current_state
         
         time.sleep(1800)
+        
+def group_comments_by_author(comments):
+    grouped = {}
+    for key, comment in comments.items():
+        author = comment.get('author', 'Unknown')
+        if author not in grouped:
+            grouped[author] = []
+        grouped[author].append({
+            'unique_key': key,
+            'file_path': comment.get('file_path'),
+            'comment': comment.get('comment'),
+            'timestamp': comment.get('timestamp'),
+            'markup_true': comment.get('markup_true')
+        })
+    return grouped
 
 @app.route('/')
 def home():
     start_time = time.time()
     folders = get_cached_dir_list(BASE_DIR)
-    comments = load_comments()
-    if not comments:
-        comments = {}
+    comments = load_comments() or {}
+    comments_by_author = group_comments_by_author(comments)
     logging.info("Rendering template with folders: %s and comments: %s" % (folders, comments))
     logging.info("Home route processing time: %s seconds" % (time.time() - start_time))
-    return render_template('index.html', folders=folders, comments=comments)
+    return render_template('index.html', folders=folders, comments_by_author=comments_by_author)
 
 @app.route('/<folder_name>/')
 def folder(folder_name):

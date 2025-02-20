@@ -435,7 +435,16 @@ function removeBackButton() {
 }
 
 
-
+function toggleIHUView(view) {
+    if (view === 'sequential') {
+      document.getElementById('grid-container-ihu-sequential').style.display = 'grid';
+      document.getElementById('grid-container-ihu-actual').style.display = 'none';
+    } else if (view === 'actual') {
+      document.getElementById('grid-container-ihu-sequential').style.display = 'none';
+      document.getElementById('grid-container-ihu-actual').style.display = 'grid';
+    }
+  }
+  
 
 /**
  * Creates the "Sequential" IHU grid layout inside #grid-container-redsub,
@@ -916,7 +925,8 @@ function openGallery(filePath) {
         copyLink.addEventListener('click', function (event) {
             event.preventDefault();
             // The user’s old logic used "1-YYYYMMDD" in the link
-            const url = `https://hatops.astro.princeton.edu/hatpi/1-${date}/${fileName}`;
+            // const url = `https://hatops.astro.princeton.edu/hatpi/1-${date}/${fileName}`;
+            const url = `https://hatops.astro.princeton.edu${filePath}`;
             copyToClipboard(url);
             copyLink.innerText = 'Copied ✅';
         });
