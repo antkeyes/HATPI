@@ -188,7 +188,8 @@ a:hover {
     flex-direction: column;
     gap: 10px;
     overflow-y: auto;
-    max-height: 400px;  /* Adjust as needed */
+    max-height: 400px;
+    /* Adjust as needed */
     padding-top: 10px;
     padding-bottom: 10px;
 }
@@ -201,6 +202,7 @@ a:hover {
     background-color: #12181F;
     border-radius: 8px;
     box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
+    box-sizing: border-box;
     z-index: 3;
     scrollbar-color: #8E97A1 #21262E;
     scrollbar-width: thin;
@@ -211,7 +213,7 @@ a:hover {
 }
 
 /* for smaller viewports */
-@media (max-width: 500px) {
+@media (max-width: 1000px) {
     .comments-container {
         grid-template-columns: 1fr;
     }
@@ -288,7 +290,7 @@ a:hover {
     /* Adjust as needed */
     /* transform: translateY(-50%); */
     text-align: center;
-    font-size: 2em;
+    font-size: 2.5em;
     /* color: #3579A6; */
     /* text-decoration: none; */
     /* padding: 10px 20px; */
@@ -356,9 +358,23 @@ a.back-to-home:hover {
     background-color: #87689E;
 }
 
+#index-ihu-buttons {
+    display: flex;
+    /* ensure it's a flex container */
+    justify-content: flex-end;
+    /* align children (the buttons) to the right */
+    width: 52%;
+    margin: 50px auto 20px;
+    /* centers the container horizontally */
+    padding-right: 10px;
+    /* optional spacing on the right */
+}
+
+
+
 #data-mode-buttons .mode-button {
     background-color: #000;
-    border: 1px solid darkseagreen;
+    border: 1px solid #CE9179;
     color: #d4d4d4;
     padding: 8px 16px;
     /* Slightly smaller than 10px 20px */
@@ -372,19 +388,19 @@ a.back-to-home:hover {
 }
 
 #data-mode-buttons .mode-button:hover {
-    background-color: darkseagreen;
+    background-color: #CE9179;
 }
 
 #data-mode-buttons .mode-button.active {
     background-color: #000;
     font-weight: bold;
     font-size: 1.2rem;
-    border: 3px solid darkseagreen;
-    box-shadow: 0 0 15px darkseagreen;
+    border: 3px solid #CE9179;
+    box-shadow: 0 0 15px #CE9179;
 }
 
 #data-mode-buttons .mode-button.active:hover {
-    background-color: darkseagreen;
+    background-color: #CE9179;
 }
 
 
@@ -761,7 +777,6 @@ a.back-to-home:hover {
 .grid-container-ihu {
     display: flex;
     flex-direction: column;
-    margin-top: 20px;
     position: relative;
 }
 
@@ -976,35 +991,41 @@ a.back-to-home:hover {
 
 /* back button on ihu view reduction and sutraction in images-list container */
 .back-button {
-    color: #f0f0f0; 
+    color: #f0f0f0;
     font-size: 1.3em;
-  }
-  
+}
 
-  .split-container {
+
+.split-container {
     display: flex;
     gap: 20px;
     margin: 0 auto;
-    width: 60%; /* or whatever width suits your layout */
-  }
-  
-  .dates-container {
-    flex: 1 1 40%;  /* Adjust this ratio as desired; it can be a fixed width as well */
-    max-height: 500px;
+    margin-bottom: 50px;
+    width: 60%;
+    /* or whatever width suits your layout */
+}
+
+.dates-container {
+    flex: 1 1 40%;
+    /* Adjust this ratio as desired; it can be a fixed width as well */
+    max-height: 550px;
     overflow-y: auto;
     background-color: #1C1F26;
     border-radius: 8px;
     padding: 10px;
     scrollbar-color: #8E97A1 #21262E;
     scrollbar-width: thin;
-  }
-  
-  .ihu-container {
+    box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
+}
+
+.ihu-container {
     flex: 1 1 60%;
     position: relative;
-    background-color: #1C1F26;
+    /* background-color: #1C1F26; */
     border-radius: 8px;
     padding: 10px;
     overflow: hidden;
-  }
-  
+    display: flex;              /* Enable flex layout */
+    justify-content: center;    /* Center horizontally */
+    align-items: center;        /* Center vertically */
+}

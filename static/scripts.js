@@ -436,15 +436,26 @@ function removeBackButton() {
 
 
 function toggleIHUView(view) {
+    // Get all the buttons inside #index-ihu-buttons
+    var buttons = document.querySelectorAll('#index-ihu-buttons .pill-button-unique');
+
+    // Remove active class from all
+    buttons.forEach(button => button.classList.remove('active'));
+
+    // Depending on the view, toggle the grid display
     if (view === 'sequential') {
-      document.getElementById('grid-container-ihu-sequential').style.display = 'grid';
-      document.getElementById('grid-container-ihu-actual').style.display = 'none';
+        document.getElementById('grid-container-ihu-sequential').style.display = 'grid';
+        document.getElementById('grid-container-ihu-actual').style.display = 'none';
+        // Add active class to the sequential button
+        document.querySelector('#index-ihu-buttons .pill-button-unique[onclick="toggleIHUView(\'sequential\')"]').classList.add('active');
     } else if (view === 'actual') {
-      document.getElementById('grid-container-ihu-sequential').style.display = 'none';
-      document.getElementById('grid-container-ihu-actual').style.display = 'grid';
+        document.getElementById('grid-container-ihu-sequential').style.display = 'none';
+        document.getElementById('grid-container-ihu-actual').style.display = 'grid';
+        // Add active class to the actual button
+        document.querySelector('#index-ihu-buttons .pill-button-unique[onclick="toggleIHUView(\'actual\')"]').classList.add('active');
     }
-  }
-  
+}
+
 
 /**
  * Creates the "Sequential" IHU grid layout inside #grid-container-redsub,

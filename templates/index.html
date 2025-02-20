@@ -19,11 +19,10 @@
     <div class="content-wrapper">
         <!-- Optional: A pill container to control IHU grid toggling -->
         <div class="pills-container">
-            <div class="pill-container-unique">
-                <!-- These buttons now only toggle between Actual and Sequential views -->
+            <div id="index-ihu-buttons" class="pill-container-unique">
                 <button class="pill-button-unique active" onclick="toggleIHUView('sequential')">Sequential</button>
                 <button class="pill-button-unique" onclick="toggleIHUView('actual')">Actual</button>
-            </div>
+              </div>              
         </div>
 
         <!-- New split container: left for Dates, right for IHU grid -->
