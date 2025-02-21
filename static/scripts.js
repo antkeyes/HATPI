@@ -1084,6 +1084,31 @@ function openGallery(filePath) {
     leftContent.appendChild(content);
     rightComments.appendChild(titleContainer);
     rightComments.appendChild(commentContainer);
+
+    const flagsContainer = document.createElement('div');
+    flagsContainer.id = 'flags-container';
+    flagsContainer.className = 'flags-container';
+    flagsContainer.innerHTML = `
+        <h3>Flag Selections</h3>
+        <div class="flags-grid">
+            <label><input type="checkbox" value="Trails"> Trails</label>
+            <label><input type="checkbox" value="Airplanes"> Airplanes</label>
+            <label><input type="checkbox" value="Contrails"> Contrails</label>
+            <label><input type="checkbox" value="Clouds"> Clouds</label>
+            <label><input type="checkbox" value="Comet"> Comet</label>
+            <label><input type="checkbox" value="Meteor"> Meteor</label>
+            <label><input type="checkbox" value="Transient"> Transient</label>
+            <label><input type="checkbox" value="Planet"> Planet</label>
+            <label><input type="checkbox" value="Ghost"> Ghost</label>
+            <label><input type="checkbox" value="Maculae"> Maculae</label>
+            <label><input type="checkbox" value="Shutter Failure"> Shutter Failure</label>
+            <label><input type="checkbox" value="Readout Issue"> Readout Issue</label>
+            <label><input type="checkbox" value="Clean Image"> Clean Image</label>
+            <label><input type="checkbox" value="Other"> Other (unusual / unknown)</label>
+        </div>
+        `;
+    rightComments.appendChild(flagsContainer);
+
     rightComments.appendChild(navContainer);
 
     // Only add instructions if the file type is .jpg
@@ -1125,6 +1150,8 @@ function submitCommentOrMarkup(filePath, comment, author) {
         return;
     }
 
+    const flags = getSelectedFlags();
+
     const canvas = document.getElementById('drawingCanvas');
     const imageElement = document.querySelector('.gallery-content');
 
@@ -1147,11 +1174,14 @@ function submitCommentOrMarkup(filePath, comment, author) {
             body: JSON.stringify({
                 fileName: filePath.split('/').pop(),
                 imageData: dataURL,
+                // Append flags using a unique delimiter (here "--FLAGS--")
                 comment: comment,
                 author: author,
-                markup_true: '✏️'
+                markup_true: '✏️',
+                flags: flags
             }),
         })
+
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -1180,7 +1210,8 @@ function submitCommentOrMarkup(filePath, comment, author) {
                 fileName: filePath.split('/').pop(),
                 filePath,
                 comment,
-                author
+                author,
+                flags: flags
             }),
         })
             .then(response => {
@@ -1387,7 +1418,6 @@ function formatTitle(fileName) {
     return titleLines;
 }
 
-/** Load and display comments (unchanged) */
 function loadComments() {
     fetch('/hatpi/comments.json')
         .then(response => response.json())
@@ -1424,7 +1454,24 @@ function loadComments() {
                         <p>${comment.comment}</p>
                         <button class="delete-comment-button" onclick="deleteComment('${comment.uniqueKey}')">Delete</button>
                     </div>
-                `;
+                    `;
+
+                // If there are flags, create a .comment-flags container, then append them:
+                if (comment.flags && comment.flags.length > 0) {
+                    const flagsContainer = document.createElement('div');
+                    flagsContainer.className = 'comment-flags';
+
+                    comment.flags.forEach(flagValue => {
+                        const span = document.createElement('span');
+                        span.className = 'flag';
+                        span.innerText = flagValue;
+                        flagsContainer.appendChild(span);
+                    });
+
+                    // Insert flagsContainer right below .comment-body or wherever you like
+                    const commentBody = commentItem.querySelector('.comment-body');
+                    commentBody.appendChild(flagsContainer);
+                }
 
                 const filenameElement = commentItem.querySelector('.comment-filename');
                 filenameElement.insertBefore(iconDiv, filenameElement.firstChild);
@@ -1435,9 +1482,7 @@ function loadComments() {
         .catch(error => console.error('Error loading comments:', error));
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    loadComments();
-});
+
 
 /**
  * Delete a comment (server call)
@@ -1568,6 +1613,45 @@ function filterMovies(filter) {
 
     applyAlternatingColors('.movies');
 }
+
+function getSelectedFlags() {
+    const flags = [];
+    const checkboxes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        if (cb.checked) {
+            flags.push(cb.value);
+        }
+    });
+    return flags;
+}
+
+function submitComment() {
+    const commentData = {
+        // Collect other comment data...
+        comment: document.getElementById('comment-input').value,
+        author: document.getElementById('author-input').value,
+        timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+        // Get the flags selected:
+        flags: getSelectedFlags()
+    };
+
+    // Now send commentData via AJAX/fetch or your preferred method to your server to update comments.json
+    fetch('/path/to/api/submit-comment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(commentData)
+    })
+        .then(response => response.json())
+        .then(data => {
+            // Handle the response
+        })
+        .catch(error => {
+            console.error('Error submitting comment:', error);
+        });
+}
+
 
 /** Adjust overlay content on window resize */
 function adjustGalleryContent() {

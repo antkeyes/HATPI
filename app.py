@@ -176,7 +176,8 @@ def group_comments_by_author(comments):
             'file_path': comment.get('file_path'),
             'comment': comment.get('comment'),
             'timestamp': comment.get('timestamp'),
-            'markup_true': comment.get('markup_true')
+            'markup_true': comment.get('markup_true'),
+            'flags': comment.get('flags', []) #making sure to default to empty list if no flags tagged on image
         })
     return grouped
 
@@ -320,6 +321,7 @@ def save_markups():
         comment = data.get('comment', '')
         author = data.get('author', '')
         markup_true = data.get('markup_true')
+        flags = data.get('flags', [])
 
         if not comment:
             return jsonify(success=False, message="Comment is required")
@@ -341,7 +343,8 @@ def save_markups():
             'author': author,
             'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'file_path': '/hatpi/markup_images/%s' % file_name,
-            'markup_true': markup_true
+            'markup_true': markup_true,
+            'flags': flags
         }
         save_comments(comments)
 
@@ -379,6 +382,7 @@ def submit_comment():
     comment = data.get('comment')
     author = data.get('author')
     markup_true = data.get('markup_true', '')
+    flags = data.get('flags', [])
     
     if file_name and comment:
         comments = load_comments()
@@ -388,7 +392,8 @@ def submit_comment():
             'comment': comment,
             'author': author,
             'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'markup_true': markup_true
+            'markup_true': markup_true,
+            'flags': flags
         }
         save_comments(comments)
         return jsonify({'success': True})

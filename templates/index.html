@@ -22,7 +22,7 @@
             <div id="index-ihu-buttons" class="pill-container-unique">
                 <button class="pill-button-unique active" onclick="toggleIHUView('sequential')">Sequential</button>
                 <button class="pill-button-unique" onclick="toggleIHUView('actual')">Actual</button>
-              </div>              
+            </div>
         </div>
 
         <!-- New split container: left for Dates, right for IHU grid -->
@@ -55,6 +55,7 @@
         </div>
 
         <!-- Comments title -->
+        <!-- Comments title -->
         <h2 class="comments-title">Comments</h2>
         <div class="comments-container">
             {% for author, author_comments in comments_by_author|dictsort %}
@@ -71,7 +72,7 @@
                             {% endif %}
                             <span class="comment-filename">
                                 <a href="{{ item.file_path }}" target="_blank">
-                                    {{ item.file_path.split('/')[-1] | format_filename}}
+                                    {{ item.file_path.split('/')[-1] | format_filename }}
                                 </a>
                             </span>
                             <span class="comment-timestamp">{{ item.timestamp }}</span>
@@ -82,6 +83,13 @@
                                 Delete
                             </button>
                         </div>
+                        {% if item.flags and item.flags|length > 0 %}
+                        <div class="comment-flags">
+                            {% for flag in item.flags %}
+                            <span class="flag">{{ flag }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
