@@ -957,9 +957,27 @@ function openGallery(filePath) {
                 : '.images .file-item'
             )
     );
-    currentGalleryFiles = Array.from(currentGalleryFiles)
-        .map(item => item.querySelector('a'))
-        .filter(a => a && a.style.display !== 'none');
+    // First get all .file-item elements:
+    let allItems = document.querySelectorAll(
+        fileType === 'html'
+            ? '.plot-list .file-item'
+            : fileType === 'mp4'
+                ? '.movies .file-item'
+                : '.images .file-item'
+    );
+
+    // Convert NodeList to an array:
+    allItems = Array.from(allItems);
+
+    // Filter out hidden .file-item parents:
+    allItems = allItems.filter(item => {
+        // Is the parent hidden?
+        return window.getComputedStyle(item).display !== 'none';
+    });
+
+    // Then map to the anchor for the openGallery(...) path
+    currentGalleryFiles = allItems.map(item => item.querySelector('a'));
+
 
 
     currentGalleryIndex = currentGalleryFiles.findIndex(file =>
@@ -1426,14 +1444,30 @@ function loadComments() {
             if (!commentsContainer) return;
             commentsContainer.innerHTML = '';
 
+            // Convert the object of comments into an array
             const commentsArray = Object.entries(data).map(([key, comment]) => ({
                 ...comment,
                 uniqueKey: key
             }));
+            // Sort by newest first
             commentsArray.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
             for (const comment of commentsArray) {
-                const filename = comment.file_path.split('/').pop();
+                // 1) Get the filename from comment.file_path:
+                const rawFilename = comment.file_path.split('/').pop();
+
+                // 2) Check if path includes '/RED/' or '/SUB/'
+                let prettyName;
+                if (comment.file_path.includes('/RED/') || comment.file_path.includes('/SUB/')) {
+                    // Just show the raw filename for RED/SUB:
+                    prettyName = rawFilename;
+                } else {
+                    // For calibration files, keep using your existing formatTitle() logic:
+                    const lines = formatTitle(rawFilename);
+                    prettyName = lines.join(' | ');
+                }
+
+                // 3) Build the comment DOM:
                 const iconDiv = document.createElement('div');
                 iconDiv.className = 'markup-icon';
                 iconDiv.innerText = comment.markup_true || '';
@@ -1445,36 +1479,35 @@ function loadComments() {
                     <div class="comment-header">
                         <span class="comment-filename">
                             <a href="${comment.file_path}" target="_blank">
-                                ${filename}
+                                ${prettyName}
                             </a>
                         </span>
                         <span class="comment-timestamp">${comment.timestamp}</span>
                     </div>
                     <div class="comment-body">
                         <p>${comment.comment}</p>
-                        <button class="delete-comment-button" onclick="deleteComment('${comment.uniqueKey}')">Delete</button>
+                        <button class="delete-comment-button" onclick="deleteComment('${comment.uniqueKey}')">
+                            Delete
+                        </button>
                     </div>
-                    `;
+                `;
 
-                // If there are flags, create a .comment-flags container, then append them:
-                if (comment.flags && comment.flags.length > 0) {
-                    const flagsContainer = document.createElement('div');
-                    flagsContainer.className = 'comment-flags';
-
-                    comment.flags.forEach(flagValue => {
-                        const span = document.createElement('span');
-                        span.className = 'flag';
-                        span.innerText = flagValue;
-                        flagsContainer.appendChild(span);
-                    });
-
-                    // Insert flagsContainer right below .comment-body or wherever you like
-                    const commentBody = commentItem.querySelector('.comment-body');
-                    commentBody.appendChild(flagsContainer);
-                }
-
+                // 4) Insert the "markup icon" if any:
                 const filenameElement = commentItem.querySelector('.comment-filename');
                 filenameElement.insertBefore(iconDiv, filenameElement.firstChild);
+
+                // 5) If you also want to show flags, do something like:
+                if (comment.flags && comment.flags.length) {
+                    const flagsContainer = document.createElement('div');
+                    flagsContainer.className = 'comment-flags';
+                    comment.flags.forEach(flag => {
+                        const flagSpan = document.createElement('span');
+                        flagSpan.className = 'flag';
+                        flagSpan.innerText = flag;
+                        flagsContainer.appendChild(flagSpan);
+                    });
+                    commentItem.querySelector('.comment-body').appendChild(flagsContainer);
+                }
 
                 commentsContainer.appendChild(commentItem);
             }
