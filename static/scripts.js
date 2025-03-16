@@ -133,6 +133,7 @@ function formatDateFolderName(folderName) {
 }
 
 
+
 function listRedSubDatesForIhu(redOrSub) {
     const imagesContainer = document.querySelector('.images-list .images');
     imagesContainer.innerHTML = '';
@@ -790,8 +791,36 @@ function navigateGallery(direction) {
     }
 }
 
+const KEY_TO_FLAG = {
+    a: 'Airplane',
+    b: "Beautiful",
+    c: 'Clouds',
+    f: 'Flash',
+    g: 'Ghost',
+    i: 'Ice',
+    m: 'Meteor',
+    r: 'Readout Issue',
+    s: 'Shutter Failure',
+    t: 'Trail',
+    w: 'Weird',
+    o: 'Other'
+}
+
 const handleKeyDown = (event) => {
     if (currentGalleryIndex === -1 || !currentGalleryFiles.length) return;
+
+    // If user is typing in the comment box or any input/textarea, skip
+    const activeEl = document.activeElement;
+    const isTypingInInput =
+        activeEl &&
+        (activeEl.tagName.toLowerCase() === 'textarea' ||
+         (activeEl.tagName.toLowerCase() === 'input' && activeEl.type !== 'checkbox'));
+
+    if (isTypingInInput) {
+        // If they’re typing in the comment box, do not toggle flags
+        return;
+    }
+
 
     if (event.key === 'ArrowLeft') {
         navigateGallery(-1);
@@ -803,6 +832,9 @@ const handleKeyDown = (event) => {
     } else if (event.key == 'd') {
         drawingActive = true;
         document.body.style.cursor = 'crosshair';
+    } else if (KEY_TO_FLAG[event.key]) {
+        toggleFlagCheckbox(KEY_TO_FLAG[event.key]);
+        event.preventDefault(); //prevent default behavior (like scrolling for space bar press)
     }
 };
 
@@ -903,8 +935,17 @@ function openGallery(filePath) {
         galleryOverlay.innerHTML = '';
     }
 
+    window.currentFilePath = filePath;
+
     const fileName = filePath.split('/').pop();
-    const formattedTitle = formatTitle(fileName);
+    let folderForTitle;
+    if (filePath.includes('/RED/') || filePath.includes('/SUB/')) {
+        let parts = filePath.split('/');
+        folderForTitle = parts[3] || "";
+    } else {
+        folderForTitle = document.querySelector('.page-title').getAttribute('data-folder');
+    }
+    const formattedTitle = formatTitle(fileName, folderForTitle);
 
     // We'll create a container for the "title lines"
     const titleContainer = document.createElement('div');
@@ -976,8 +1017,10 @@ function openGallery(filePath) {
     });
 
     // Then map to the anchor for the openGallery(...) path
-    currentGalleryFiles = allItems.map(item => item.querySelector('a'));
-
+    // currentGalleryFiles = allItems.map(item => item.querySelector('a'));
+    currentGalleryFiles = allItems
+        .map(item => item.querySelector('a'))
+        .filter(a => a !== null);
 
 
     currentGalleryIndex = currentGalleryFiles.findIndex(file =>
@@ -1109,20 +1152,18 @@ function openGallery(filePath) {
     flagsContainer.innerHTML = `
         <h3>Flag Selections</h3>
         <div class="flags-grid">
-            <label><input type="checkbox" value="Trails"> Trails</label>
-            <label><input type="checkbox" value="Airplanes"> Airplanes</label>
-            <label><input type="checkbox" value="Contrails"> Contrails</label>
-            <label><input type="checkbox" value="Clouds"> Clouds</label>
-            <label><input type="checkbox" value="Comet"> Comet</label>
-            <label><input type="checkbox" value="Meteor"> Meteor</label>
-            <label><input type="checkbox" value="Transient"> Transient</label>
-            <label><input type="checkbox" value="Planet"> Planet</label>
-            <label><input type="checkbox" value="Ghost"> Ghost</label>
-            <label><input type="checkbox" value="Maculae"> Maculae</label>
-            <label><input type="checkbox" value="Shutter Failure"> Shutter Failure</label>
-            <label><input type="checkbox" value="Readout Issue"> Readout Issue</label>
-            <label><input type="checkbox" value="Clean Image"> Clean Image</label>
-            <label><input type="checkbox" value="Other"> Other (unusual / unknown)</label>
+            <label><input type="checkbox" value="Airplane"> Airplane (a)</label>
+            <label><input type="checkbox" value="Beautiful"> Beautiful (b)</label>
+            <label><input type="checkbox" value="Clouds"> Clouds (c)</label>
+            <label><input type="checkbox" value="Flash"> Flash (f)</label>
+            <label><input type="checkbox" value="Ghost"> Ghost (g)</label>
+            <label><input type="checkbox" value="Ice"> Ice (i)</label>
+            <label><input type="checkbox" value="Meteor"> Meteor (m)</label>
+            <label><input type="checkbox" value="Readout Issue"> Readout Issue (r)</label>
+            <label><input type="checkbox" value="Shutter Failure"> Shutter Failure (s)</label>
+            <label><input type="checkbox" value="Trail"> Trail (t)</label>
+            <label><input type="checkbox" value="Other"> Other (o) (unusual / unknown)</label>
+            <label><input type="checkbox" value="Weird"> Weird (w)</label>
         </div>
         `;
     rightComments.appendChild(flagsContainer);
@@ -1153,7 +1194,54 @@ function openGallery(filePath) {
     if (fileType === 'jpg') {
         addCanvasOverlay(content);
     }
+
+    const checkboxNodes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
+    checkboxNodes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const label = cb.closest('label');
+            if (!label) return;
+            // toggle highlight class based on whether it's checked
+            label.classList.toggle('flag-selected', cb.checked);
+            pendingFlagChanges = true; // so we know to save
+        });
+    });
+
+    precheckKeyboardFlags(filePath);
 }
+
+function precheckKeyboardFlags(filePath) {
+    // Must remove "/hatpi" if that's what you do before saving:
+    const pathKey = filePath.replace('/hatpi', '');
+
+    fetch('/hatpi/keyboard_flags.json')
+      .then(r => r.json())
+      .then(data => {
+          // Now lookup using pathKey instead of fileName
+          if (data[pathKey] && data[pathKey].flags) {
+              const savedFlags = data[pathKey].flags;
+              // Then check your checkboxes accordingly
+              const checkboxes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
+              checkboxes.forEach(cb => {
+                  if (savedFlags.includes(cb.value)) {
+                      cb.checked = true;
+                      cb.closest('label').classList.add('flag-selected');
+                  } else {
+                      cb.checked = false;
+                      cb.closest('label').classList.remove('flag-selected');
+                  }
+              });
+          } else {
+              // If there's no entry for this path, uncheck everything
+              const checkboxes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
+              checkboxes.forEach(cb => {
+                  cb.checked = false;
+                  cb.closest('label').classList.remove('flag-selected');
+              });
+          }
+      })
+      .catch(err => console.error("Error loading keyboard flags:", err));
+}
+
 
 /**
  * Submit comment or markup to the server
@@ -1337,46 +1425,48 @@ function setupCanvas(imageElement) {
  * Format filename to include ccd temp & exposure time lines (restored),
  * plus date, type, IHU, etc.
  */
-function formatTitle(fileName) {
+function formatTitle(fileName, folderName) {
     let titleLines = [];
     let dateStr = '';
     let typeStr = '';
     let ihuStr = '';
-
-    // 1) Extract date => "YYYY-MM-DD"
-    const dateMatch = fileName.match(/(\d{4})(\d{2})(\d{2})/);
+  
+    // Attempt to extract date from the file name first.
+    let dateMatch = fileName.match(/(\d{4})(\d{2})(\d{2})/);
     if (dateMatch) {
         dateStr = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+    } else if (folderName && /^1-\d{8}$/.test(folderName)) {
+        // If file name doesn’t have a date, extract it from folder name.
+        // Folder name "1-20250310" becomes "2025-03-10".
+        dateStr = folderName.substring(2,6) + '-' + folderName.substring(6,8) + '-' + folderName.substring(8,10);
     }
-
-    // 2) IHU => "IHU-01" etc.
-    const ihuMatch = fileName.match(/ihu-(\d+)/i);
+  
+    // Extract IHU number from file name.
+    let ihuMatch = fileName.match(/ihu-(\d+)/i);
     if (ihuMatch) {
         ihuStr = `IHU-${ihuMatch[1].padStart(2, '0')}`;
     } else {
-        // fallback if the name has "_(\d+)_"
-        const underscoreMatch = fileName.match(/_(\d+)_/);
+        // Fallback: look for a number after an underscore.
+        let underscoreMatch = fileName.match(/_(\d+)[-_]/);
         if (underscoreMatch) {
             ihuStr = `IHU-${underscoreMatch[1].padStart(2, '0')}`;
         }
     }
-
-    // 3) Decide "type" by extension & known substrings
+  
+    // Determine file type.
     if (fileName.endsWith('.mp4')) {
-        // It's a movie
         if (fileName.includes('subframe_stamps_movie')) {
-            typeStr = 'subframe stamps';
+            typeStr = 'Subframe Stamps';
         } else if (fileName.includes('subframe_movie')) {
-            typeStr = 'subframe';
+            typeStr = 'Subframe';
         } else if (fileName.includes('calframe_stamps_movie')) {
-            typeStr = 'calframe stamps';
+            typeStr = 'Calframe Stamps';
         } else if (fileName.includes('calframe_movie')) {
-            typeStr = 'calframe';
+            typeStr = 'Calframe';
         } else {
-            typeStr = 'movie';
+            typeStr = 'Movie';
         }
     } else if (fileName.endsWith('.html')) {
-        // It's a plot
         if (fileName.includes('aper_phot_quality')) {
             typeStr = 'Aper Phot Quality';
         } else if (fileName.includes('astrometry_sip_quality')) {
@@ -1395,46 +1485,49 @@ function formatTitle(fileName) {
             typeStr = 'Station Status';
         }
     } else {
-        // Assume a calibration JPG
-        if (fileName.includes('masterdark')) {
-            typeStr = 'dark';
+        // For .jpg files (calibration or red/subtraction)
+        if (fileName.toLowerCase().includes('-red-')) {
+            typeStr = 'Reduction';
+        } else if (fileName.toLowerCase().includes('-sub-')) {
+            typeStr = 'Subtraction';
+        } else if (fileName.includes('masterdark')) {
+            typeStr = 'Dark';
         } else if (fileName.includes('masterbias')) {
-            typeStr = 'bias';
+            typeStr = 'Bias';
         } else if (fileName.includes('masterflat') && fileName.includes('-ss')) {
-            typeStr = 'flat-ss';
+            typeStr = 'Flat-ss';
         } else if (fileName.includes('masterflat') && fileName.includes('-ls')) {
-            typeStr = 'flat-ls';
+            typeStr = 'Flat-ls';
         } else if (fileName.includes('masterglobflat') && fileName.includes('-ss')) {
-            typeStr = 'globflat-ss';
+            typeStr = 'Globflat-ss';
         } else if (fileName.includes('masterglobflat') && fileName.includes('-ls')) {
-            typeStr = 'globflat-ls';
+            typeStr = 'Globflat-ls';
         } else {
-            typeStr = 'image';
+            typeStr = 'Image';
         }
     }
-
-    // 4) Push date/type/ihu in your desired order
+  
+    // Extract frame number for JPEGs.
+    let frameStr = '';
+    if (!fileName.endsWith('.html') && !fileName.endsWith('.mp4')) {
+        let frameMatch = fileName.match(/1-(\d+)_/);
+        if (frameMatch) {
+            frameStr = `frame: ${frameMatch[1]}`;
+        }
+    }
+  
     if (dateStr) titleLines.push(dateStr);
     if (typeStr) titleLines.push(typeStr);
     if (ihuStr) titleLines.push(ihuStr);
-
-    // 5) Add back ccd temp & exposure time if found
-    const exptimeMatch = fileName.match(/EXPTIME\d+\.\d+/);
-    if (exptimeMatch) {
-        titleLines.push(`exposure time: ${exptimeMatch[0].replace('EXPTIME', '')}`);
-    }
-    const tempMatch = fileName.match(/CCDTEMP-?\d+\.\d+/);
-    if (tempMatch) {
-        titleLines.push(`ccd temp: ${tempMatch[0].replace('CCDTEMP', '')}`);
-    }
-
-    // If still empty, just raw filename
+    if (frameStr) titleLines.push(frameStr);
+  
+    // If no title lines were created, just return the raw file name.
     if (!titleLines.length) {
         return [fileName];
     }
-
     return titleLines;
 }
+
 
 function loadComments() {
     fetch('/hatpi/comments.json')
@@ -1683,6 +1776,116 @@ function submitComment() {
         .catch(error => {
             console.error('Error submitting comment:', error);
         });
+}
+
+// check/uncheck the correct checkbox. add/remove the highlighted class on the label
+function toggleFlagCheckbox(flagLabel) {
+    const checkboxes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
+    for (let cb of checkboxes) {
+        if (cb.value === flagLabel) {
+            cb.checked = !cb.checked; // Toggle checked status
+            // Find the parent <label> and toggle the highlight
+            const label = cb.closest('label');
+            if (label) {
+                label.classList.toggle('flag-selected', cb.checked);
+            }
+            break;
+        }
+    }
+}
+
+let pendingFlagChanges = false;
+window.currentFilePath = null; // So we know which file is open
+
+function toggleFlagCheckbox(flagLabel) {
+    const checkboxes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
+    for (let cb of checkboxes) {
+        if (cb.value === flagLabel) {
+            cb.checked = !cb.checked;
+            const label = cb.closest('label');
+            if (label) {
+                label.classList.toggle('flag-selected', cb.checked);
+            }
+            pendingFlagChanges = true; // Mark unsaved
+            break;
+        }
+    }
+}
+
+// Called by the arrow key nav:
+function navigateGallery(direction) {
+    if (pendingFlagChanges) {
+        saveKeyboardFlagsForCurrentImage()
+            .then(() => {
+                pendingFlagChanges = false;
+                goToNextOrPrev(direction);
+            })
+            .catch(err => {
+                console.error("Error auto-saving flags:", err);
+                // still navigate so user isn't stuck
+                goToNextOrPrev(direction);
+            });
+    } else {
+        goToNextOrPrev(direction);
+    }
+}
+
+function goToNextOrPrev(direction) {
+    currentGalleryIndex = (currentGalleryIndex + direction + currentGalleryFiles.length) % currentGalleryFiles.length;
+    let nextFile = null;
+
+    const onclickString = currentGalleryFiles[currentGalleryIndex].getAttribute('onclick');
+    const openGalleryMatch = onclickString.match(/openGallery\('([^']+)'\)/);
+    const loadPlotMatch = onclickString.match(/loadPlot\('([^']+)'\)/);
+
+    if (openGalleryMatch) {
+        nextFile = openGalleryMatch[1];
+    } else if (loadPlotMatch) {
+        nextFile = loadPlotMatch[1];
+    }
+    if (nextFile) {
+        openGallery(nextFile);
+    }
+}
+
+function saveKeyboardFlagsForCurrentImage() {
+    return new Promise((resolve, reject) => {
+        // Gather currently checked flags
+        const flags = [];
+        const checkboxes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                flags.push(cb.value);
+            }
+        });
+
+        let filePath = window.currentFilePath;
+        if (!filePath) {
+            return resolve();
+        }
+
+        filePath = filePath.replace('/hatpi', '');
+
+        // Post to new /api/keyboard_flags route
+        fetch('/hatpi/api/keyboard_flags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                // fileName: fileName,
+                filePath: filePath,
+                flags: flags,
+                author: '' // or "KeyboardUser"
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                console.warn("Keyboard flags not saved:", data.message);
+            }
+            resolve();
+        })
+        .catch(err => reject(err));
+    });
 }
 
 

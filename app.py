@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 BASE_DIR = '/nfs/hatops/ar0/hatpi-website'
-EXCLUDE_FOLDERS = set(['download_sandbox' ,'static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images', 'SUB', 'RED'])
+EXCLUDE_FOLDERS = set(['download_sandbox' ,'static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images', 'SUB', 'RED', 'data'])
 
 for folder in os.listdir(BASE_DIR):
     if folder.startswith('ihu'):
@@ -19,6 +19,7 @@ for folder in os.listdir(BASE_DIR):
 
 COMMENTS_FILE = '/nfs/hatops/ar0/hatpi-website/comments.json'
 SAVE_PATH = '/nfs/hatops/ar0/hatpi-website/markup_images'
+KEYBOARD_FLAGS_FILE = '/nfs/hatops/ar0/hatpi-website/keyboard_flags.json'
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -494,6 +495,56 @@ def api_subfolders(folder_name):
     subfolders.sort()
     return jsonify({"subfolders": subfolders})
 
+@app.route('/api/keyboard_flags', methods=['POST'])
+def update_keyboard_flags():
+    """
+    Saves the 'keyboard-selected' flags to a separate file (keyboard_flags.json).
+    This does NOT require a comment and does NOT appear in comments.json.
+    """
+    data = request.get_json() or {}
+    # file_name = data.get('fileName')
+    file_path = data.get('filePath')       # e.g. "/SUB/1-20250216/ihu50/1-4879..."
+    new_flags = data.get('flags', [])          # List of flags
+    
+    #hardcode author as adriana for laziness
+    author = "Adriana"
+
+    # if not file_path:
+    #     return jsonify(success=False, message="filePath is required")
+
+    # Load the current dictionary of keyboard flags
+    kflags = load_keyboard_flags()
+    
+    #if already flags on image, and new ones added, append these, dont clear existing
+    # old_entry = kflags.get(file_name, {})
+    # old_flags = old_entry.get('flags', [])
+    
+    #turn them all into sets for easy union
+    # old_flag_set = set(old_flags)
+    # new_flag_set = set(new_flags)
+    
+    #merge sets
+    # merged_flag_set = old_flag_set.union(new_flag_set)
+    final_flags = sorted(list(set(new_flags)))
+
+    # We'll store them keyed by fileName.  Or you can do file_path if you prefer.
+    # The user might open the same image via different paths, but typically
+    # fileName alone is enough. You can also store them keyed by file_path if you'd like.
+    kflags[file_path] = {
+        "flags": final_flags,
+        "timestamp": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "author": author
+    }
+
+    # Save back
+    save_keyboard_flags(kflags)
+
+    return jsonify(success=True, flags=final_flags)
+
+@app.route('/hatpi/keyboard_flags.json')
+def serve_kb_flags():
+    data = load_keyboard_flags()
+    return jsonify(data)
 
 
 
@@ -519,6 +570,25 @@ def load_comments():
 def save_comments(comments):
     with open(COMMENTS_FILE, 'w') as file:
         json.dump(comments, file, indent=4)
+        
+def load_keyboard_flags():
+    if os.path.exists(KEYBOARD_FLAGS_FILE):
+        try:
+            with open(KEYBOARD_FLAGS_FILE, 'r') as f:
+                data = json.load(f)
+            return data
+        except Exception as e:
+            app.logger.error(f"Error loading {KEYBOARD_FLAGS_FILE}: {e}")
+            return {}
+    return {}
+
+def save_keyboard_flags(data):
+    try:
+        with open(KEYBOARD_FLAGS_FILE, 'w') as f:
+            json.dump(data, f, indent=4)
+    except Exception as e:
+        app.logger.error(f"Error saving {KEYBOARD_FLAGS_FILE}: {e}")
+
 
 if __name__ == '__main__':
     polling_thread = threading.Thread(target=poll_directory)
