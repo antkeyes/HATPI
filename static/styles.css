@@ -1111,23 +1111,24 @@ label.flag-selected {
   
   .tagged-images-container {
     width: 300px; /* or whatever you prefer */
-    background-color: #222;
+    background-color: #12181F;
     padding: 10px;
+    margin-right: 30px;
     border-radius: 5px;
-    color: #fff;
-    max-height: 80vh;
+    color: #8E97A1;
+    max-height: 70vh;
     overflow-y: auto;
     align-self: center;
   }
   
   .tagged-card {
     border: 1px solid #444;
-    background: #333;
+    background: #1C1F26;
     border-radius: 4px;
     padding: 8px;
     margin-bottom: 10px;
   }
-  .tagged-card a { color: #ffd700; text-decoration: none; }
+  .tagged-card a { color: #2980B9; text-decoration: none; }
   .tagged-card a:hover { text-decoration: underline; }
 
 /* flaggedOverlay styles */
@@ -1180,6 +1181,9 @@ label.flag-selected {
     border: 2px solid limegreen; 
     box-shadow: 0 0 6px rgba(0,255,0,0.6);
   }
-  
-  
-  
+
+  .flag-text {
+    border: 1px solid green;
+    padding: 2px 4px;
+    border-radius: 4px;
+}

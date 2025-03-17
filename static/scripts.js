@@ -2128,6 +2128,29 @@ function closeFlaggedOverlay() {
     document.removeEventListener('keydown', handleFlaggedKeydown);
 }
 
+function formatTaggedFileName(filePath) {
+    // Remove any leading slash and split the path
+    const parts = filePath.split('/').filter(Boolean);
+    if (parts.length < 4) return filePath; // fallback if unexpected format
+  
+    const category = parts[0].toUpperCase(); // e.g. "SUB"
+    const dateFolder = parts[1];             // e.g. "1-20250313"
+    const cameraFolder = parts[2];           // e.g. "ihu01"
+    const fileName = parts[3];               // e.g. "1-505238_01-sub-bin4.jpg"
+  
+    let type = "";
+    if (category === "SUB") {
+      type = "subtraction";
+    } else if (category === "RED") {
+      type = "reduction";
+    } else {
+      type = category.toLowerCase();
+    }
+  
+    return buildRedSubLinkText(dateFolder, type, cameraFolder, fileName);
+  }
+  
+
 
 
 window.addEventListener('resize', adjustGalleryContent);
