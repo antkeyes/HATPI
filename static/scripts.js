@@ -926,6 +926,18 @@ function copyToClipboard(text) {
  * plus ccd temp & exposure time lines from formatTitle
  */
 function openGallery(filePath) {
+    // 1) If flagged overlay is open, close it
+    if (flaggedOverlay) {
+        closeFlaggedOverlay(); 
+    }
+
+    // 2) Proceed with your existing openGallery code for the “main” overlay
+    if (!galleryOverlay) {
+        // create #galleryOverlay, etc...
+    } else {
+        galleryOverlay.innerHTML = '';
+    }
+
     if (!galleryOverlay) {
         galleryOverlay = document.createElement('div');
         galleryOverlay.id = 'galleryOverlay';
@@ -1904,6 +1916,219 @@ function adjustGalleryContent() {
         overlayIframe.style.height = '100%';
     }
 }
+
+
+/**
+ * We'll store a placeholder div and originalParent so we can restore 
+ * #taggedImagesContainer after closing the overlay.
+ */
+let flaggedOverlay = null;
+let flaggedGalleryIndex = -1;
+let originalParent = null;
+let containerPlaceholder = null;
+
+/**
+ * openFlaggedGallery(startIndex):
+ *  - closes the main overlay if open
+ *  - creates flaggedOverlay if needed
+ *  - moves #taggedImagesContainer into flaggedOverlay
+ *  - calls showFlaggedFile() for the clicked item
+ */
+function openFlaggedGallery(startIndex) {
+    // If main overlay is open, close it
+    if (galleryOverlay) {
+        closeGalleryOverlay();
+    }
+
+    // If no flaggedOverlay yet, create it
+    if (!flaggedOverlay) {
+        flaggedOverlay = document.createElement('div');
+        flaggedOverlay.id = 'flaggedOverlay';
+        flaggedOverlay.className = 'flagged-overlay'; 
+        document.body.appendChild(flaggedOverlay);
+    } else {
+        // Clear leftover dynamic elements
+        flaggedOverlay.innerHTML = '';
+    }
+
+    // Move #taggedImagesContainer into flaggedOverlay, unless we did it already
+    const taggedContainer = document.getElementById('taggedImagesContainer');
+    if (taggedContainer && !containerPlaceholder) {
+        // create a placeholder to restore later
+        containerPlaceholder = document.createElement('div');
+        containerPlaceholder.id = 'taggedImagesPlaceholder';
+
+        // remember parent
+        originalParent = taggedContainer.parentNode;
+        // insert placeholder in original location
+        originalParent.insertBefore(containerPlaceholder, taggedContainer);
+
+        // move container into overlay
+        flaggedOverlay.appendChild(taggedContainer);
+        taggedContainer.classList.add('in-overlay');
+    }
+
+    // Set the flaggedGalleryIndex and open the first file
+    flaggedGalleryIndex = startIndex;
+    showFlaggedFile(flaggedGalleryFiles[flaggedGalleryIndex]);
+}
+
+/**
+ * showFlaggedFile(linkElement):
+ *  - Clears out leftover elements in flaggedOverlay (except the #taggedImagesContainer)
+ *  - Builds the "left" side with <img>, <video>, or <iframe>
+ *  - Appends #taggedImagesContainer on the right
+ *  - Builds the nav container (arrows + close) 
+ *  - Highlights the corresponding card in #taggedImagesContainer
+ */
+function showFlaggedFile(linkElement) {
+    // Remove leftover children from flaggedOverlay except #taggedImagesContainer
+    Array.from(flaggedOverlay.children).forEach(child => {
+        if (child.id === 'taggedImagesContainer') return; // keep it
+        flaggedOverlay.removeChild(child);
+    });
+
+    const filePath = linkElement.getAttribute('href') || '';
+    const fileType = filePath.split('.').pop().toLowerCase();
+
+    // Create left side container for the displayed media
+    const leftDiv = document.createElement('div');
+    leftDiv.className = 'flagged-left-content';
+
+    // Create the media element
+    let content;
+    if (fileType === 'mp4') {
+        content = document.createElement('video');
+        content.src = filePath;
+        content.controls = true;
+    } else if (fileType === 'html') {
+        content = document.createElement('iframe');
+        content.src = filePath;
+    } else {
+        content = document.createElement('img');
+        content.src = filePath;
+    }
+    content.className = 'gallery-content';
+    content.onerror = () => {
+        console.error('Error loading flagged file:', filePath);
+        content.alt = 'Failed to load';
+    };
+
+    leftDiv.appendChild(content);
+
+
+    const closeButton = document.createElement('button');
+    closeButton.innerText = 'esc';
+    closeButton.className = 'closeButton';
+    closeButton.onclick = closeFlaggedOverlay;
+
+    const navContainer = document.createElement('div');
+    navContainer.className = 'flagged-nav-container'; // so you can style differently
+    navContainer.appendChild(closeButton);
+
+    // Now we append everything in the order: 
+    // 1) left side (the image)
+    // 2) the taggedImagesContainer is ALREADY appended, so it stays "on the right"
+    // 3) nav container 
+    flaggedOverlay.appendChild(leftDiv);
+    // #taggedImagesContainer is already inside flaggedOverlay, so it appears on the right side
+    flaggedOverlay.appendChild(navContainer);
+
+    // Add keydown for arrow keys / ESC
+    document.addEventListener('keydown', handleFlaggedKeydown, { once: true });
+
+    // highlight the current card
+    highlightActiveCard(linkElement);
+}
+
+/**
+ * highlightActiveCard(linkElement):
+ *  - Removes .active-card from all .tagged-card
+ *  - Adds .active-card to the card that matches the clicked link's data-index
+ */
+function highlightActiveCard(linkElement) {
+    // Remove existing highlight
+    document.querySelectorAll('.tagged-card').forEach(card => {
+        card.classList.remove('active-card');
+    });
+
+    const indexAttr = linkElement.getAttribute('data-index');
+    if (indexAttr) {
+        // find the <a> with that data-index
+        const matchingLink = document.querySelector(`.tagged-file-link[data-index="${indexAttr}"]`);
+        if (matchingLink) {
+            const parentCard = matchingLink.closest('.tagged-card');
+            if (parentCard) {
+                parentCard.classList.add('active-card');
+                //scroll to active card
+                parentCard.scrollIntoView({ behavior: 'smooth', block: 'nearest'});
+            }
+        }
+    }
+}
+
+/**
+ * navigateFlaggedGallery(direction):
+ *  - moves flaggedGalleryIndex forward/back
+ *  - calls showFlaggedFile() again
+ */
+function navigateFlaggedGallery(direction) {
+    flaggedGalleryIndex = (flaggedGalleryIndex + direction + flaggedGalleryFiles.length) % flaggedGalleryFiles.length;
+    showFlaggedFile(flaggedGalleryFiles[flaggedGalleryIndex]);
+}
+
+/**
+ * handleFlaggedKeydown(evt):
+ *  - arrow keys => next/previous
+ *  - ESC => close
+ */
+function handleFlaggedKeydown(evt) {
+    if (evt.key === 'ArrowLeft') {
+        navigateFlaggedGallery(-1);
+    } else if (evt.key === 'ArrowRight') {
+        navigateFlaggedGallery(1);
+    } else if (evt.key === 'Escape') {
+        closeFlaggedOverlay();
+    }
+    document.addEventListener('keydown', handleFlaggedKeydown, { once: true });
+}
+
+/**
+ * closeFlaggedOverlay():
+ *  - moves #taggedImagesContainer back to original parent
+ *  - removes flaggedOverlay from DOM
+ *  - cleans up placeholder, etc.
+ */
+function closeFlaggedOverlay() {
+    if (flaggedOverlay) {
+        // move container back
+        const taggedContainer = document.getElementById('taggedImagesContainer');
+        if (taggedContainer && containerPlaceholder) {
+            taggedContainer.classList.remove('in-overlay');
+            containerPlaceholder.parentNode.insertBefore(taggedContainer, containerPlaceholder);
+        }
+
+        //clear active highlighing from cards that were active in flaggedOverlay
+        document.querySelectorAll('.tagged-card').forEach(card => card.classList.remove('active-card'));
+
+        // remove overlay
+        document.body.removeChild(flaggedOverlay);
+        flaggedOverlay = null;
+        flaggedGalleryIndex = -1;
+    }
+
+    // remove placeholder
+    if (containerPlaceholder) {
+        containerPlaceholder.remove();
+        containerPlaceholder = null;
+    }
+    originalParent = null;
+
+    // remove arrow-key listener
+    document.removeEventListener('keydown', handleFlaggedKeydown);
+}
+
+
 
 window.addEventListener('resize', adjustGalleryContent);
 adjustGalleryContent();

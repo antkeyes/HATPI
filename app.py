@@ -196,7 +196,29 @@ def home():
 def folder(folder_name):
     folder_path = os.path.join(BASE_DIR, folder_name)
     images, html_files, movies = get_cached_files(folder_path)
-    return render_template('folder.html', images=images, html_files=html_files, movies=movies, folder_name=folder_name)
+
+    keyboard_flags = load_keyboard_flags()
+    flagged_for_folder = []
+
+    # Correctly aligned for-loop:
+    for fullpath, flag_data in keyboard_flags.items():
+        if folder_name in fullpath:
+            flagged_for_folder.append({
+                "file_path": fullpath,
+                "flags": flag_data.get("flags", []),
+                "timestamp": flag_data.get("timestamp", ""),
+                "author": flag_data.get("author", "")
+            })
+
+    return render_template(
+        'folder.html',
+        images=images,
+        html_files=html_files,
+        movies=movies,
+        folder_name=folder_name,
+        flagged_items=flagged_for_folder
+    )
+
 
 @app.route('/api/folder/<path:folder_name>')
 def api_folder(folder_name):
@@ -370,10 +392,36 @@ def file(folder_name, filename):
 
 @app.route('/ihu/ihu-<cell_number>')
 def ihu_cell(cell_number):
-    folder_name = 'ihu-%s' % cell_number
+    folder_name = f'ihu-{cell_number}'
     folder_path = os.path.join(BASE_DIR, folder_name)
     images, html_files, movies = get_cached_files(folder_path)
-    return render_template('folder.html', folder_name=folder_name, images=images, html_files=html_files, movies=movies)
+
+    # Load keyboard flags
+    keyboard_flags = load_keyboard_flags()
+
+    # Because your real folder or your JSON might use “ihu03”
+    alt_folder_name = folder_name.replace('ihu-', 'ihu')
+
+    flagged_for_folder = []
+    for fullpath, flag_data in keyboard_flags.items():
+        # Substring-check for both "ihu-03" and "ihu03"
+        if folder_name in fullpath or alt_folder_name in fullpath:
+            flagged_for_folder.append({
+                "file_path": fullpath,
+                "flags": flag_data.get("flags", []),
+                "timestamp": flag_data.get("timestamp", ""),
+                "author": flag_data.get("author", "")
+            })
+
+    return render_template(
+        'folder.html',
+        folder_name=folder_name,
+        images=images,
+        html_files=html_files,
+        movies=movies,
+        flagged_items=flagged_for_folder
+    )
+
 
 @app.route('/submit_comment', methods=['POST'])
 def submit_comment():

@@ -14,122 +14,172 @@
         <div class="twinkling"></div>
     </div>
 
-    <!-- Store original folder_name in a data attribute so we can retrieve it in JS -->
-    <h1 class="page-title" data-folder="{{ folder_name }}">{{ folder_name | format_folder }}</h1>
+    <!-- 
+       Wrap all content in a flex container.
+       Left side = your normal folder content
+       Right side = flagged-images-container (only shown if flagged items exist)
+    -->
+    <div class="folder-page-flex-container">
 
-    <div class="pills-container">
-        <div class="pill-container-unique">
-            <button class="pill-button-unique active" onclick="showTab('images', event)">Images</button>
-            <button class="pill-button-unique" onclick="showTab('html-files', event)">Plots</button>
-            <button class="pill-button-unique" onclick="showTab('movies', event)">Movies</button>
-        </div>
-        <a href="https://hatops.astro.princeton.edu/hatpi" class="back-to-home">🏠</a>
-    </div>
+        <!-- LEFT SIDE: All your existing content -->
+        <div class="folder-left-panel">
+            <!-- Store original folder_name in a data attribute so we can retrieve it in JS -->
+            <h1 class="page-title" data-folder="{{ folder_name }}">{{ folder_name | format_folder }}</h1>
 
-    <!-- New Data Mode Selector -->
-    <div id="data-mode-buttons" class="mode-buttons" style="margin: 20px 0 20px 20%; text-align: left;">
-        <button id="calibrationModeButton" class="mode-button active" onclick="switchDataMode('calibration')">Master Frames</button>
-        <button id="redSubModeButton" class="mode-button" onclick="switchDataMode('redsub')">JPEGs</button>
-    </div>
-
-    <div class="folder-content-container">
-        <div class="filter-buttons-container">
-            <!-- Filter Buttons Container (will be switched between Calibration vs RED/SUB) -->
-            <div class="filter-buttons" id="image-filters">
-                <!-- Default calibration buttons -->
-                <button class="filter-button active" onclick="filterImages('all')">All</button>
-                <button class="filter-button" onclick="filterImages('bias')">Bias</button>
-                <button class="filter-button" onclick="filterImages('dark')">Dark</button>
-                <button class="filter-button" onclick="filterImages('flat-ss')">Flat</button>
-                <!-- <button class="filter-button" onclick="filterImages('flat-ls')">Flat ls</button> -->
-                <button class="filter-button" onclick="filterImages('globflat-ss')">Globflat ss</button>
-                <button class="filter-button" onclick="filterImages('globflat-ls')">Globflat ls</button>
+            <div class="pills-container">
+                <div class="pill-container-unique">
+                    <button class="pill-button-unique active" onclick="showTab('images', event)">Images</button>
+                    <button class="pill-button-unique" onclick="showTab('html-files', event)">Plots</button>
+                    <button class="pill-button-unique" onclick="showTab('movies', event)">Movies</button>
+                </div>
+                <a href="https://hatops.astro.princeton.edu/hatpi" class="back-to-home">🏠</a>
             </div>
 
-            <div class="filter-buttons hidden" id="html-filters">
-                <button class="filter-button active" onclick="filterHtmlFiles('all')">All</button>
-                <button class="filter-button" onclick="filterHtmlFiles('aper_phot_quality')">Aper Phot Quality</button>
-                <button class="filter-button" onclick="filterHtmlFiles('astrometry_sip_quality')">Astrometry SIP Quality</button>
-                <button class="filter-button" onclick="filterHtmlFiles('astrometry_wcs_quality')">Astrometry WCS Quality</button>
-                <button class="filter-button" onclick="filterHtmlFiles('calframe_quality')">Calframe Quality</button>
-                <button class="filter-button" onclick="filterHtmlFiles('ihu_status')">IHU Status</button>
-                <button class="filter-button" onclick="filterHtmlFiles('psf_sources_model')">PSF Sources Models</button>
-                <button class="filter-button" onclick="filterHtmlFiles('subframe_quality')">Subframe Quality</button>
+            <!-- New Data Mode Selector -->
+            <div id="data-mode-buttons" class="mode-buttons" style="margin: 20px 0 20px 20%; text-align: left;">
+                <button id="calibrationModeButton" class="mode-button active" onclick="switchDataMode('calibration')">Master Frames</button>
+                <button id="redSubModeButton" class="mode-button" onclick="switchDataMode('redsub')">JPEGs</button>
             </div>
 
-            <div class="filter-buttons hidden" id="movie-filters">
-                <button class="filter-button active" onclick="filterMovies('all')">All</button>
-                <button class="filter-button" onclick="filterMovies('subframe')">Subframe</button>
-                <button class="filter-button" onclick="filterMovies('subframe-stamps')">Subframe Stamps</button>
-                <button class="filter-button" onclick="filterMovies('calframe')">Calframe</button>
-                <button class="filter-button" onclick="filterMovies('calframe-stamps')">Calframe Stamps</button>
-            </div>
-        </div>
+            <!-- Your existing container for filters + file listings -->
+            <div class="folder-content-container">
+                <div class="filter-buttons-container">
+                    <!-- Filter Buttons Container (will be switched between Calibration vs RED/SUB) -->
+                    <div class="filter-buttons" id="image-filters">
+                        <!-- Default calibration buttons -->
+                        <button class="filter-button active" onclick="filterImages('all')">All</button>
+                        <button class="filter-button" onclick="filterImages('bias')">Bias</button>
+                        <button class="filter-button" onclick="filterImages('dark')">Dark</button>
+                        <button class="filter-button" onclick="filterImages('flat-ss')">Flat</button>
+                        <!-- <button class="filter-button" onclick="filterImages('flat-ls')">Flat ls</button> -->
+                        <button class="filter-button" onclick="filterImages('globflat-ss')">Globflat ss</button>
+                        <button class="filter-button" onclick="filterImages('globflat-ls')">Globflat ls</button>
+                    </div>
 
-        <!-- The images-list container where images normally appear -->
-        <div class="images-list-container">
-            <!-- IHU grid for RED/SUB mode (hidden by default) -->
-            <div id="grid-container-redsub" style="display: none;"></div>
+                    <div class="filter-buttons hidden" id="html-filters">
+                        <button class="filter-button active" onclick="filterHtmlFiles('all')">All</button>
+                        <button class="filter-button" onclick="filterHtmlFiles('aper_phot_quality')">Aper Phot Quality</button>
+                        <button class="filter-button" onclick="filterHtmlFiles('astrometry_sip_quality')">Astrometry SIP Quality</button>
+                        <button class="filter-button" onclick="filterHtmlFiles('astrometry_wcs_quality')">Astrometry WCS Quality</button>
+                        <button class="filter-button" onclick="filterHtmlFiles('calframe_quality')">Calframe Quality</button>
+                        <button class="filter-button" onclick="filterHtmlFiles('ihu_status')">IHU Status</button>
+                        <button class="filter-button" onclick="filterHtmlFiles('psf_sources_model')">PSF Sources Models</button>
+                        <button class="filter-button" onclick="filterHtmlFiles('subframe_quality')">Subframe Quality</button>
+                    </div>
 
-            <!-- Calibration (default) images tab -->
-            <div id="images" class="tab-content active">
-                <div class="images-list">
-                    <div class="images">
-                        {% for image, creation_date in images %}
-                            {% if image.endswith('.jpg') %}
-                                <div class="file-item" data-filename="{{ image }}">
-                                    <div class="file-name">
-                                        <!-- Onclick calls openGallery() so it uses the overlay -->
-                                        <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ image }}'); return false;">
-                                            {{ image | format_filename }}
-                                        </a>
-                                    </div>
-                                    <div class="file-date">{{ creation_date }}</div>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
+                    <div class="filter-buttons hidden" id="movie-filters">
+                        <button class="filter-button active" onclick="filterMovies('all')">All</button>
+                        <button class="filter-button" onclick="filterMovies('subframe')">Subframe</button>
+                        <button class="filter-button" onclick="filterMovies('subframe-stamps')">Subframe Stamps</button>
+                        <button class="filter-button" onclick="filterMovies('calframe')">Calframe</button>
+                        <button class="filter-button" onclick="filterMovies('calframe-stamps')">Calframe Stamps</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Plots tab -->
-            <div id="html-files" class="tab-content">
-                <div class="html-files plot-list">
-                    {% for html_file, creation_date in html_files %}
-                        {% if html_file.endswith('.html') %}
-                            <div class="file-item" data-filename="{{ html_file }}">
-                                <div class="file-name">
-                                    <a href="#" onclick="loadPlot('/hatpi/{{ folder_name }}/{{ html_file }}'); return false;">
-                                        {{ html_file | format_filename }}
-                                    </a>
-                                </div>
-                                <div class="file-date">{{ creation_date }}</div>
+                <!-- The images-list container where images normally appear -->
+                <div class="images-list-container">
+                    <!-- IHU grid for RED/SUB mode (hidden by default) -->
+                    <div id="grid-container-redsub" style="display: none;"></div>
+
+                    <!-- Calibration (default) images tab -->
+                    <div id="images" class="tab-content active">
+                        <div class="images-list">
+                            <div class="images">
+                                {% for image, creation_date in images %}
+                                    {% if image.endswith('.jpg') %}
+                                        <div class="file-item" data-filename="{{ image }}">
+                                            <div class="file-name">
+                                                <!-- Onclick calls openGallery() so it uses the overlay -->
+                                                <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ image }}'); return false;">
+                                                    {{ image | format_filename }}
+                                                </a>
+                                            </div>
+                                            <div class="file-date">{{ creation_date }}</div>
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
-                        {% endif %}
-                    {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Plots tab -->
+                    <div id="html-files" class="tab-content">
+                        <div class="html-files plot-list">
+                            {% for html_file, creation_date in html_files %}
+                                {% if html_file.endswith('.html') %}
+                                    <div class="file-item" data-filename="{{ html_file }}">
+                                        <div class="file-name">
+                                            <a href="#" onclick="loadPlot('/hatpi/{{ folder_name }}/{{ html_file }}'); return false;">
+                                                {{ html_file | format_filename }}
+                                            </a>
+                                        </div>
+                                        <div class="file-date">{{ creation_date }}</div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Movies tab -->
+                    <div id="movies" class="tab-content">
+                        <div class="movies">
+                            {% for movie, creation_date in movies %}
+                                {% if movie.endswith('.mp4') %}
+                                    <div class="file-item" data-filename="{{ movie }}">
+                                        <div class="file-name">
+                                            <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ movie }}'); return false;">
+                                                {{ movie | format_filename }}
+                                            </a>
+                                        </div>
+                                        <div class="file-date">{{ creation_date }}</div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div><!-- end folder-content-container -->
+        </div><!-- end folder-left-panel -->
+
+        <!-- RIGHT SIDE: Only show if flagged_items is not empty -->
+        {% if flagged_items and flagged_items|length > 0 %}
+        <div id="taggedImagesContainer" class="tagged-images-container">
+            <h2>Tagged Files</h2>
+        
+            <!-- We'll give each item a data-index so we know which item it is in JS -->
+            {% for item in flagged_items %}
+            <div class="tagged-card">
+                <div class="tagged-file-name">
+                    <!-- 
+                       Instead of direct onclick="openGallery(...)", 
+                       we'll just store the href, and let JS attach click handlers. 
+                    -->
+                    <a 
+                      href="/hatpi{{ item.file_path }}" 
+                      class="tagged-file-link" 
+                      data-index="{{ loop.index0 }}"
+                    >
+                        {{ item.file_path }}
+                    </a>
+                </div>
+                <div class="tagged-flags">
+                    <strong>Flags:</strong> {{ item.flags|join(', ') }}
+                </div>
+                <div class="tagged-timestamp">
+                    <strong>Timestamp:</strong> {{ item.timestamp }}
+                </div>
+                <div class="tagged-author">
+                    <strong>Author:</strong> {{ item.author }}
                 </div>
             </div>
-
-            <!-- Movies tab -->
-            <div id="movies" class="tab-content">
-                <div class="movies">
-                    {% for movie, creation_date in movies %}
-                        {% if movie.endswith('.mp4') %}
-                            <div class="file-item" data-filename="{{ movie }}">
-                                <div class="file-name">
-                                    <a href="#" onclick="openGallery('/hatpi/{{ folder_name }}/{{ movie }}'); return false;">
-                                        {{ movie | format_filename }}
-                                    </a>
-                                </div>
-                                <div class="file-date">{{ creation_date }}</div>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
-                </div>
-            </div>
+            {% endfor %}
         </div>
-    </div>
+        {% endif %}
+        
 
+    </div><!-- end folder-page-flex-container -->
+
+    <!-- Your scripts -->
     <script src="/hatpi/static/scripts.js"></script>
     <script>
         // On DOMContentLoaded, adjust the page title (IHU color logic) and load the default calibration folder.
@@ -138,17 +188,12 @@
             if (pageTitle) {
                 const ihuMatch = pageTitle.innerText.match(/^ihu-(\d+)$/);
                 const dateMatch = pageTitle.innerText.match(/^(\d{4})-(\d{2})-(\d{2})$/); 
-                /* 
-                  If your 'format_folder_name' filter turned "1-20250213" into "2025-02-13", 
-                  then 'pageTitle.innerText' might be "2025-02-13" 
-                */
 
                 if (ihuMatch) {
                     const ihuNumber = parseInt(ihuMatch[1], 10);
                     const newTitle = ihuMatch[1];
                     pageTitle.innerText = newTitle;
                     pageTitle.classList.add('ihu-title');
-
                     let backgroundColor;
                     if (ihuNumber === 1) backgroundColor = '#CD4025';
                     else if (ihuNumber >= 2 && ihuNumber <= 5) backgroundColor = '#E06566';
@@ -160,7 +205,6 @@
                     else if (ihuNumber >= 47 && ihuNumber <= 54) backgroundColor = '#CFE1F3';
                     else if (ihuNumber >= 55 && ihuNumber <= 61) backgroundColor = '#B4A7D5';
                     else if (ihuNumber >= 62 && ihuNumber <= 64) backgroundColor = '#D5A6BE';
-
                     if (backgroundColor) {
                         pageTitle.style.backgroundColor = backgroundColor;
                     }
@@ -186,5 +230,26 @@
             document.head.appendChild(script);
         }
     </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Collect all links in .tagged-images-container
+            const flaggedLinks = document.querySelectorAll('.tagged-images-container .tagged-file-link');
+            // Convert NodeList to array so we can index them:
+            window.flaggedGalleryFiles = Array.from(flaggedLinks);
+        
+            // Attach a click handler to each:
+            flaggedGalleryFiles.forEach((link, index) => {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();  // prevent normal navigation
+                    if (flaggedOverlay) {
+                        flaggedGalleryIndex = index;
+                        showFlaggedFile(flaggedGalleryFiles[index]);
+                    } else {
+                        openFlaggedGallery(index);
+                    }
+                });
+            });
+        });
+    </script>        
 </body>
 </html>

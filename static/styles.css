@@ -1093,3 +1093,93 @@ label.flag-selected {
     padding: 2px 4px; 
   }
   
+
+  /* conditional container for tagges images in folder.html pages */
+
+  .folder-page-flex-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    /* if you like some spacing: */
+    gap: 20px;
+    margin: 20px;
+  }
+  
+  .folder-left-panel {
+    flex: 1; 
+  }
+  
+  .tagged-images-container {
+    width: 300px; /* or whatever you prefer */
+    background-color: #222;
+    padding: 10px;
+    border-radius: 5px;
+    color: #fff;
+    max-height: 80vh;
+    overflow-y: auto;
+    align-self: center;
+  }
+  
+  .tagged-card {
+    border: 1px solid #444;
+    background: #333;
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 10px;
+  }
+  .tagged-card a { color: #ffd700; text-decoration: none; }
+  .tagged-card a:hover { text-decoration: underline; }
+
+/* flaggedOverlay styles */
+#flaggedOverlay {
+    /* similar to your existing overlay setup, but separate */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2000;       /* so it's on top of .gallery-overlay if both appear */
+    display: flex;       /* using flex instead of grid this time */
+    overflow: hidden;
+  }
+  
+  /* The left side, containing the flagged image or video */
+  #flaggedOverlay .flagged-left-content {
+    flex: 1;             /* take the remaining space */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;  /* so we can place a canvas if needed */
+    margin: 0 10px;      /* optional left/right margin */
+  }
+  
+  /* The nav container with arrows & close button, if you place them absolutely or just inline */
+  #flaggedOverlay .nav-container {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    gap: 10px;
+  }
+  
+  /* Example styling for your .tagged-images-container when it's inside the flagged overlay */
+  .tagged-images-container.in-overlay {
+    width: 320px;
+    background: #333;
+    color: #fff;
+    padding: 10px;
+    border-left: 2px solid #444;
+    height: 80vh;
+    overflow-y: auto;
+    order: 99;
+  }
+  
+  /* If you want the .tagged-card highlight (currently viewed) */
+  .tagged-card.active-card {
+    border: 2px solid limegreen; 
+    box-shadow: 0 0 6px rgba(0,255,0,0.6);
+  }
+  
+  
+  
