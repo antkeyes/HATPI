@@ -54,10 +54,19 @@
             </div>
         </div>
 
-        <!-- Comments title -->
-        <!-- Comments title -->
-        <h2 class="comments-title">Comments</h2>
-        <div class="comments-container">
+
+        <!-- Toggle Buttons for Comments and Tagged Images -->
+        <div class="comments-tags-toggle">
+            <button id="show-comments" class="pill-button-unique active" onclick="toggleCommentsTagged('comments')">
+                Comments
+            </button>
+            <button id="show-tagged" class="pill-button-unique" onclick="toggleCommentsTagged('tagged')">
+                Tagged Images
+            </button>
+        </div>
+
+        <!-- Comments container -->
+        <div id="comments-container" class="comments-container">
             {% for author, author_comments in comments_by_author|dictsort %}
             <div class="comment-card">
                 <div class="card-header">
@@ -96,6 +105,12 @@
             </div>
             {% endfor %}
         </div>
+
+        <!-- New container for Tagged Images -->
+        <div id="all-tagged-images-container" class="all-tagged-images-container" style="display: none;">
+            <p>Loading tagged images...</p>
+        </div>
+
     </div>
 
     <script src="/hatpi/static/scripts.js"></script>
@@ -440,6 +455,60 @@
 
         });
     </script>
+    <script>
+        function toggleCommentsTagged(view) {
+            if (view === 'comments') {
+                document.getElementById('comments-container').style.display = 'grid';
+                document.getElementById('all-tagged-images-container').style.display = 'none';
+                document.getElementById('show-comments').classList.add('active');
+                document.getElementById('show-tagged').classList.remove('active');
+            } else if (view === 'tagged') {
+                document.getElementById('comments-container').style.display = 'none';
+                document.getElementById('all-tagged-images-container').style.display = 'block';
+                document.getElementById('show-comments').classList.remove('active');
+                document.getElementById('show-tagged').classList.add('active');
+                loadTaggedImages(); // load the tagged images when view is switched
+            }
+        }
+
+        function loadTaggedImages() {
+            fetch('/hatpi/keyboard_flags.json')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('all-tagged-images-container');
+                    container.innerHTML = '';  // clear the container
+
+                    // Loop over the entries in the keyboard_flags JSON
+                    for (const filePath in data) {
+                        if (data.hasOwnProperty(filePath)) {
+                            const entry = data[filePath];
+
+                            // Create an element to display the entry.
+                            // You can adjust the markup and styling as needed.
+                            const entryDiv = document.createElement('div');
+                            entryDiv.className = 'tagged-image-entry';
+                            entryDiv.innerHTML = `
+                    <a href="/hatpi${filePath}" target="_blank">${filePath.split('/').pop()}</a>
+                    <div class="tag-flags"><strong>Flags:</strong> ${entry.flags.join(', ')}</div>
+                    <div class="tag-timestamp"><strong>Timestamp:</strong> ${entry.timestamp}</div>
+                    <div class="tag-author"><strong>Author:</strong> ${entry.author}</div>
+                  `;
+                            container.appendChild(entryDiv);
+                        }
+                    }
+
+                    // If no entries were found, show a friendly message.
+                    if (Object.keys(data).length === 0) {
+                        container.innerHTML = '<p>No tagged images found.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading tagged images:', error);
+                    document.getElementById('all-tagged-images-container').innerHTML = '<p>Error loading tagged images.</p>';
+                });
+        }
+    </script>
+
 </body>
 
 </html>

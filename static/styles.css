@@ -1187,3 +1187,34 @@ label.flag-selected {
     padding: 2px 4px;
     border-radius: 4px;
 }
+
+.comments-container {
+    width: 60%;
+    margin: 0 auto 20px;
+    padding: 20px;
+    background-color: #12181F;
+    border-radius: 8px;
+    box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
+    box-sizing: border-box;
+    overflow-y: auto;
+  }
+  
+  .comments-tags-toggle {
+    width: 60%;
+    margin: 0 auto 10px;  /* centers the toggle container, leaving a 10px bottom margin */
+    text-align: left;
+    margin-bottom: 40px;
+    margin-top: 50px;
+  }
+  
+  .all-tagged-images-container {
+    width: 60%;
+    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+    background-color: #12181F; /* match the comments container */
+    border-radius: 8px;
+    box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
+    overflow-y: auto;
+  }
+  
