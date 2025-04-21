@@ -598,25 +598,38 @@ function displayRedSubImages(images, dateFolder, type, cameraFolder) {
  *  "YYYY-MM-DD | reduction | IHU-01 | frame: ####"
  */
 function buildRedSubLinkText(dateFolder, type, cameraFolder, fileName) {
-    let match = fileName.match(/1-(\d+)_/);
-    const frameText = match ? `frame: ${match[1]}` : fileName;
+    // 1) date
+    let dateStr = dateFolder;
+    if (dateFolder.startsWith('1-') && dateFolder.length >= 10) {
+        dateStr = dateFolder.slice(2, 6) + '-' +
+            dateFolder.slice(6, 8) + '-' +
+            dateFolder.slice(8, 10);
+    }
 
-    // Convert "ihu01" => "IHU-01"
+    // 2) subtype (twilight, object, etc)
+    const subtypeMatch = fileName.match(/-(?:red|sub)-([^-]+?)-bin/i);
+    const subtype = subtypeMatch
+        ? subtypeMatch[1].charAt(0).toUpperCase() + subtypeMatch[1].slice(1)
+        : null;
+
+    // 3) camera
     let cameraDisplay = cameraFolder.toUpperCase();
-    if (!cameraDisplay.includes('-')) {
+    if (!cameraDisplay.includes('-') && cameraDisplay.length >= 5) {
         cameraDisplay = cameraDisplay.slice(0, 3) + '-' + cameraDisplay.slice(3);
     }
 
-    // Convert "1-20250213" => "2025-02-13"
-    let dateStr = dateFolder;
-    if (dateFolder.indexOf('-') === 1 && dateFolder.length >= 10) {
-        dateStr = dateFolder.substring(2, 6) + '-' +
-            dateFolder.substring(6, 8) + '-' +
-            dateFolder.substring(8, 10);
-    }
+    // 4) frame
+    const fm = fileName.match(/1-(\d+)_/);
+    const frameText = fm ? `frame: ${fm[1]}` : fileName;
 
-    return `${dateStr} | ${type} | ${cameraDisplay} | ${frameText}`;
+    // Now build the parts array
+    const parts = [dateStr, type];
+    if (subtype) parts.push(subtype);
+    parts.push(cameraDisplay, frameText);
+
+    return parts.join(' | ');
 }
+
 
 /**
  * Display calibration images, HTML files, movies (non-RED/SUB),
@@ -814,7 +827,7 @@ const handleKeyDown = (event) => {
     const isTypingInInput =
         activeEl &&
         (activeEl.tagName.toLowerCase() === 'textarea' ||
-         (activeEl.tagName.toLowerCase() === 'input' && activeEl.type !== 'checkbox'));
+            (activeEl.tagName.toLowerCase() === 'input' && activeEl.type !== 'checkbox'));
 
     if (isTypingInInput) {
         // If they’re typing in the comment box, do not toggle flags
@@ -928,7 +941,7 @@ function copyToClipboard(text) {
 function openGallery(filePath) {
     // 1) If flagged overlay is open, close it
     if (flaggedOverlay) {
-        closeFlaggedOverlay(); 
+        closeFlaggedOverlay();
     }
 
     // 2) Proceed with your existing openGallery code for the “main” overlay
@@ -1226,32 +1239,32 @@ function precheckKeyboardFlags(filePath) {
     const pathKey = filePath.replace('/hatpi', '');
 
     fetch('/hatpi/keyboard_flags.json')
-      .then(r => r.json())
-      .then(data => {
-          // Now lookup using pathKey instead of fileName
-          if (data[pathKey] && data[pathKey].flags) {
-              const savedFlags = data[pathKey].flags;
-              // Then check your checkboxes accordingly
-              const checkboxes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
-              checkboxes.forEach(cb => {
-                  if (savedFlags.includes(cb.value)) {
-                      cb.checked = true;
-                      cb.closest('label').classList.add('flag-selected');
-                  } else {
-                      cb.checked = false;
-                      cb.closest('label').classList.remove('flag-selected');
-                  }
-              });
-          } else {
-              // If there's no entry for this path, uncheck everything
-              const checkboxes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
-              checkboxes.forEach(cb => {
-                  cb.checked = false;
-                  cb.closest('label').classList.remove('flag-selected');
-              });
-          }
-      })
-      .catch(err => console.error("Error loading keyboard flags:", err));
+        .then(r => r.json())
+        .then(data => {
+            // Now lookup using pathKey instead of fileName
+            if (data[pathKey] && data[pathKey].flags) {
+                const savedFlags = data[pathKey].flags;
+                // Then check your checkboxes accordingly
+                const checkboxes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
+                checkboxes.forEach(cb => {
+                    if (savedFlags.includes(cb.value)) {
+                        cb.checked = true;
+                        cb.closest('label').classList.add('flag-selected');
+                    } else {
+                        cb.checked = false;
+                        cb.closest('label').classList.remove('flag-selected');
+                    }
+                });
+            } else {
+                // If there's no entry for this path, uncheck everything
+                const checkboxes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
+                checkboxes.forEach(cb => {
+                    cb.checked = false;
+                    cb.closest('label').classList.remove('flag-selected');
+                });
+            }
+        })
+        .catch(err => console.error("Error loading keyboard flags:", err));
 }
 
 
@@ -1442,7 +1455,7 @@ function formatTitle(fileName, folderName) {
     let dateStr = '';
     let typeStr = '';
     let ihuStr = '';
-  
+
     // Attempt to extract date from the file name first.
     let dateMatch = fileName.match(/(\d{4})(\d{2})(\d{2})/);
     if (dateMatch) {
@@ -1450,9 +1463,9 @@ function formatTitle(fileName, folderName) {
     } else if (folderName && /^1-\d{8}$/.test(folderName)) {
         // If file name doesn’t have a date, extract it from folder name.
         // Folder name "1-20250310" becomes "2025-03-10".
-        dateStr = folderName.substring(2,6) + '-' + folderName.substring(6,8) + '-' + folderName.substring(8,10);
+        dateStr = folderName.substring(2, 6) + '-' + folderName.substring(6, 8) + '-' + folderName.substring(8, 10);
     }
-  
+
     // Extract IHU number from file name.
     let ihuMatch = fileName.match(/ihu-(\d+)/i);
     if (ihuMatch) {
@@ -1464,7 +1477,7 @@ function formatTitle(fileName, folderName) {
             ihuStr = `IHU-${underscoreMatch[1].padStart(2, '0')}`;
         }
     }
-  
+
     // Determine file type.
     if (fileName.endsWith('.mp4')) {
         if (fileName.includes('subframe_stamps_movie')) {
@@ -1518,7 +1531,7 @@ function formatTitle(fileName, folderName) {
             typeStr = 'Image';
         }
     }
-  
+
     // Extract frame number for JPEGs.
     let frameStr = '';
     if (!fileName.endsWith('.html') && !fileName.endsWith('.mp4')) {
@@ -1527,16 +1540,27 @@ function formatTitle(fileName, folderName) {
             frameStr = `frame: ${frameMatch[1]}`;
         }
     }
-  
-    if (dateStr) titleLines.push(dateStr);
-    if (typeStr) titleLines.push(typeStr);
+
+    // if (dateStr) titleLines.push(dateStr);
+    if (typeStr) {
+        titleLines.push(typeStr);
+        const subtypeMatch = fileName.match(/-(?:red|sub)-([^-]+?)-bin/);
+        if (subtypeMatch) {
+            const raw = subtypeMatch[1];
+            const pretty = raw.charAt(0).toUpperCase() + raw.slice(1);
+            titleLines.push(pretty);
+        }
+    }
+
+    // push IHU and frame
     if (ihuStr) titleLines.push(ihuStr);
     if (frameStr) titleLines.push(frameStr);
-  
-    // If no title lines were created, just return the raw file name.
-    if (!titleLines.length) {
-        return [fileName];
-    }
+
+    // always include date as first line
+    if (dateStr) titleLines.unshift(dateStr);
+
+    // fallback
+    if (!titleLines.length) return [fileName];
     return titleLines;
 }
 
@@ -1889,14 +1913,14 @@ function saveKeyboardFlagsForCurrentImage() {
                 author: '' // or "KeyboardUser"
             })
         })
-        .then(r => r.json())
-        .then(data => {
-            if (!data.success) {
-                console.warn("Keyboard flags not saved:", data.message);
-            }
-            resolve();
-        })
-        .catch(err => reject(err));
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    console.warn("Keyboard flags not saved:", data.message);
+                }
+                resolve();
+            })
+            .catch(err => reject(err));
     });
 }
 
@@ -1920,7 +1944,6 @@ function adjustGalleryContent() {
 
 /**
  * We'll store a placeholder div and originalParent so we can restore 
- * #taggedImagesContainer after closing the overlay.
  */
 let flaggedOverlay = null;
 let flaggedGalleryIndex = -1;
@@ -1934,7 +1957,7 @@ let containerPlaceholder = null;
  *  - moves #taggedImagesContainer into flaggedOverlay
  *  - calls showFlaggedFile() for the clicked item
  */
-function openFlaggedGallery(startIndex) {
+function openFlaggedGallery(clickedLink) {
     // If main overlay is open, close it
     if (galleryOverlay) {
         closeGalleryOverlay();
@@ -1944,7 +1967,7 @@ function openFlaggedGallery(startIndex) {
     if (!flaggedOverlay) {
         flaggedOverlay = document.createElement('div');
         flaggedOverlay.id = 'flaggedOverlay';
-        flaggedOverlay.className = 'flagged-overlay'; 
+        flaggedOverlay.className = 'flagged-overlay';
         document.body.appendChild(flaggedOverlay);
     } else {
         // Clear leftover dynamic elements
@@ -1952,24 +1975,58 @@ function openFlaggedGallery(startIndex) {
     }
 
     // Move #taggedImagesContainer into flaggedOverlay, unless we did it already
-    const taggedContainer = document.getElementById('taggedImagesContainer');
+    const taggedContainer = getFlaggedImagesContainer();
     if (taggedContainer && !containerPlaceholder) {
-        // create a placeholder to restore later
         containerPlaceholder = document.createElement('div');
         containerPlaceholder.id = 'taggedImagesPlaceholder';
-
-        // remember parent
         originalParent = taggedContainer.parentNode;
-        // insert placeholder in original location
         originalParent.insertBefore(containerPlaceholder, taggedContainer);
 
-        // move container into overlay
-        flaggedOverlay.appendChild(taggedContainer);
-        taggedContainer.classList.add('in-overlay');
+        // If the container’s first child is the wrapper, then get the flagged card for the current group
+        let cardToShow;
+        if (
+            taggedContainer.firstElementChild &&
+            taggedContainer.firstElementChild.classList.contains('tagged-images-wrapper')
+        ) {
+            const wrapper = taggedContainer.firstElementChild;
+            // Get only the flagged-flag-card that matches the current flag group.
+            cardToShow = wrapper.querySelector(
+                `.tagged-flag-card[data-flag="${window.currentFlagGroup.toLowerCase()}"]`
+            );
+        }
+        // Fallback: if no wrapper was found, use the container itself.
+        if (!cardToShow) {
+            cardToShow = taggedContainer;
+        }
+
+        cardToShow.id = 'taggedImagesContainer';
+        flaggedOverlay.appendChild(cardToShow);
+        cardToShow.classList.add('in-overlay');
     }
 
-    // Set the flaggedGalleryIndex and open the first file
-    flaggedGalleryIndex = startIndex;
+    if (window.currentFlagGroup) {
+        const currentGroup = window.currentFlagGroup.toLowerCase();
+        const cards = taggedContainer.querySelectorAll('.tagged-flag-card');
+        cards.forEach(card => {
+            if (card.getAttribute('data-flag').toLowerCase() !== currentGroup) {
+                card.style.display = 'none';
+            } else {
+                card.style.display = 'block';
+            }
+        });
+
+        // **Rebuild the global flaggedGalleryFiles list to only include links from the current group:**
+        window.flaggedGalleryFiles = Array.from(
+            document.querySelectorAll(`.tagged-flag-card[data-flag="${currentGroup}"] .tagged-file-link`)
+        );
+    }
+
+    // Now find the position of the actual link in the group:
+    flaggedGalleryIndex = flaggedGalleryFiles.indexOf(clickedLink);
+    if (flaggedGalleryIndex === -1) {
+        // Edge-case check: if for some reason it isn't found, just default to 0 or bail out.
+        flaggedGalleryIndex = 0;
+    }
     showFlaggedFile(flaggedGalleryFiles[flaggedGalleryIndex]);
 }
 
@@ -1988,7 +2045,9 @@ function showFlaggedFile(linkElement) {
         flaggedOverlay.removeChild(child);
     });
 
-    const filePath = linkElement.getAttribute('href') || '';
+    const filePath =
+        linkElement.getAttribute('data-filepath') ||
+        linkElement.getAttribute('href') || '';
     const fileType = filePath.split('.').pop().toLowerCase();
 
     // Create left side container for the displayed media
@@ -2001,12 +2060,15 @@ function showFlaggedFile(linkElement) {
         content = document.createElement('video');
         content.src = filePath;
         content.controls = true;
+        content.onloadedmetadata = adjustGalleryContent;
     } else if (fileType === 'html') {
         content = document.createElement('iframe');
         content.src = filePath;
+        content.onload = adjustGalleryContent;
     } else {
         content = document.createElement('img');
         content.src = filePath;
+        content.onload = adjustGalleryContent;
     }
     content.className = 'gallery-content';
     content.onerror = () => {
@@ -2061,11 +2123,13 @@ function highlightActiveCard(linkElement) {
             if (parentCard) {
                 parentCard.classList.add('active-card');
                 //scroll to active card
-                parentCard.scrollIntoView({ behavior: 'smooth', block: 'nearest'});
+                parentCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         }
     }
 }
+
+
 
 /**
  * navigateFlaggedGallery(direction):
@@ -2074,8 +2138,12 @@ function highlightActiveCard(linkElement) {
  */
 function navigateFlaggedGallery(direction) {
     flaggedGalleryIndex = (flaggedGalleryIndex + direction + flaggedGalleryFiles.length) % flaggedGalleryFiles.length;
-    showFlaggedFile(flaggedGalleryFiles[flaggedGalleryIndex]);
+    const newLink = flaggedGalleryFiles[flaggedGalleryIndex];
+    showFlaggedFile(newLink);
+    // Update the active highlight for index.html
+    highlightActiveFlaggedItemIndex(newLink);
 }
+
 
 /**
  * handleFlaggedKeydown(evt):
@@ -2101,56 +2169,184 @@ function handleFlaggedKeydown(evt) {
  */
 function closeFlaggedOverlay() {
     if (flaggedOverlay) {
-        // move container back
-        const taggedContainer = document.getElementById('taggedImagesContainer');
-        if (taggedContainer && containerPlaceholder) {
-            taggedContainer.classList.remove('in-overlay');
-            containerPlaceholder.parentNode.insertBefore(taggedContainer, containerPlaceholder);
-        }
-
-        //clear active highlighing from cards that were active in flaggedOverlay
-        document.querySelectorAll('.tagged-card').forEach(card => card.classList.remove('active-card'));
-
-        // remove overlay
         document.body.removeChild(flaggedOverlay);
         flaggedOverlay = null;
         flaggedGalleryIndex = -1;
     }
-
-    // remove placeholder
+    document.removeEventListener('keydown', handleFlaggedKeydown);
+    // Clear the placeholder so that next time the container will be moved into the overlay
     if (containerPlaceholder) {
         containerPlaceholder.remove();
         containerPlaceholder = null;
+        originalParent = null;
     }
-    originalParent = null;
-
-    // remove arrow-key listener
-    document.removeEventListener('keydown', handleFlaggedKeydown);
+    // Reload flagged images so the container is freshly populated
+    loadTaggedImages();
 }
+
+
+
 
 function formatTaggedFileName(filePath) {
     // Remove any leading slash and split the path
     const parts = filePath.split('/').filter(Boolean);
     if (parts.length < 4) return filePath; // fallback if unexpected format
-  
+
     const category = parts[0].toUpperCase(); // e.g. "SUB"
     const dateFolder = parts[1];             // e.g. "1-20250313"
     const cameraFolder = parts[2];           // e.g. "ihu01"
     const fileName = parts[3];               // e.g. "1-505238_01-sub-bin4.jpg"
-  
+
     let type = "";
     if (category === "SUB") {
-      type = "subtraction";
+        type = "subtraction";
     } else if (category === "RED") {
-      type = "reduction";
+        type = "reduction";
     } else {
-      type = category.toLowerCase();
+        type = category.toLowerCase();
     }
-  
-    return buildRedSubLinkText(dateFolder, type, cameraFolder, fileName);
-  }
-  
 
+    return buildRedSubLinkText(dateFolder, type, cameraFolder, fileName);
+}
+
+function loadTaggedImages() {
+    fetch('/hatpi/keyboard_flags.json')
+        .then(response => response.json())
+        .then(data => {
+            // Group entries by flag
+            const groups = {};
+            for (const filePath in data) {
+                if (data.hasOwnProperty(filePath)) {
+                    const entry = data[filePath];
+                    entry.flags.forEach(flag => {
+                        if (!groups[flag]) {
+                            groups[flag] = [];
+                        }
+                        groups[flag].push({
+                            filePath: filePath,
+                            fileName: filePath.split('/').pop(),
+                            timestamp: entry.timestamp,
+                            author: entry.author
+                        });
+                    });
+                }
+            }
+
+            const container = document.getElementById('taggedImagesContainer');
+            container.innerHTML = ''; // Clear any existing content
+
+            // Create a wrapper for a two-column grid layout
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tagged-images-wrapper';
+
+            // For each flag group, create a card
+            for (const flag in groups) {
+                if (groups.hasOwnProperty(flag)) {
+                    const groupName = flag.toLowerCase();
+                    const card = document.createElement('div');
+                    card.className = 'tagged-flag-card';
+                    card.setAttribute('data-flag', groupName);
+
+                    // Create header for the flag (wrapped in an <h3> for similar sizing)
+                    const header = document.createElement('div');
+                    header.className = 'tagged-flag-header';
+                    header.innerHTML = '<h3>' + flag + '</h3>';
+                    card.appendChild(header);
+
+                    // Create container for tagged items
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.className = 'tagged-flag-items';
+
+                    groups[flag].forEach((item, idx) => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'tagged-item';
+                        // Use href="#" to prevent navigation, store file path in data attribute
+                        itemDiv.innerHTML = `
+          <a href="#" class="tagged-file-link" data-filepath="/hatpi${item.filePath}" data-index="${idx}">
+            ${formatTaggedFileName(item.filePath)}
+          </a>
+          <div class="tagged-item-meta">
+            <span class="timestamp">${item.timestamp}</span>
+            <span class="author">${item.author}</span>
+          </div>
+        `;
+                        itemsContainer.appendChild(itemDiv);
+                    });
+
+                    card.appendChild(itemsContainer);
+                    wrapper.appendChild(card);
+                }
+            }
+
+            // If no entries were found, show a friendly message.
+            if (Object.keys(data).length === 0) {
+                container.innerHTML = '<p>No tagged images found.</p>';
+            } else {
+                container.appendChild(wrapper);
+            }
+
+            // Attach click handlers to the new tagged file links so they open the flaggedOverlay.
+            const taggedLinks = document.querySelectorAll('#taggedImagesContainer .tagged-file-link');
+            window.flaggedGalleryFiles = Array.from(taggedLinks); // Store globally for overlay functions
+            taggedLinks.forEach((link, index) => {
+                const flag = link.closest('.tagged-flag-card').getAttribute('data-flag');
+                link.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    window.currentFlagGroup = flag;
+                    highlightActiveFlaggedItemIndex(link);
+                    if (window.flaggedOverlay) {
+                        flaggedGalleryIndex = flaggedGalleryFiles.indexOf(link);
+                        showFlaggedFile(flaggedGalleryFiles[flaggedGalleryIndex]);
+                    } else {
+                        openFlaggedGallery(link);
+                    }
+                });
+            });
+        })
+        .catch(error => {
+            console.error('Error loading tagged images:', error);
+            document.getElementById('all-tagged-images-container').innerHTML = '<p>Error loading tagged images.</p>';
+        });
+}
+
+function formatTaggedFileName(filePath) {
+    // Example filePath: "/SUB/1-20250313/ihu01/1-505238_01-red-bin4.jpg"
+    const parts = filePath.split('/').filter(Boolean);
+    if (parts.length < 4) return filePath;
+
+    // Extract the date portion from the folder (assumes format "1-YYYYMMDD")
+    const dateRaw = parts[1].split('-')[1]; // e.g. "20250313"
+    const formattedDate = dateRaw.slice(0, 4) + '-' + dateRaw.slice(4, 6) + '-' + dateRaw.slice(6);
+
+    // Determine type from the first part: "SUB" or "RED"
+    const type = (parts[0].toUpperCase() === 'SUB') ? 'subtraction' : 'reduction';
+
+    // Format camera: e.g. "ihu01" → "IHU-01"
+    let camera = parts[2].toUpperCase();
+    if (!camera.includes('-') && camera.length >= 5) {
+        camera = camera.slice(0, 3) + '-' + camera.slice(3);
+    }
+
+    // Extract frame number from the filename
+    let frame = parts[3];
+    if (frame.startsWith("1-")) {
+        frame = frame.substring(2);
+    }
+    frame = frame.split('_')[0]; // "505238"
+
+    return `${formattedDate} | ${type} | ${camera} | frame: ${frame}`;
+}
+
+
+function getFlaggedImagesContainer() {
+    // First, try to get the container from folder.html
+    let container = document.getElementById('taggedImagesContainer');
+    if (!container) {
+        // Otherwise, use the container on index.html
+        container = document.getElementById('all-tagged-images-container');
+    }
+    return container;
+}
 
 
 window.addEventListener('resize', adjustGalleryContent);
