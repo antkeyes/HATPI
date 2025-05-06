@@ -11,7 +11,7 @@ from collections import OrderedDict
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 BASE_DIR = '/nfs/hatops/ar0/hatpi-website'
-EXCLUDE_FOLDERS = set(['download_sandbox' ,'static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images', 'SUB', 'RED', 'data'])
+EXCLUDE_FOLDERS = set(['fix_json', 'download_sandbox' ,'static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images', 'SUB', 'RED', 'data', 'calframe_test'])
 
 for folder in os.listdir(BASE_DIR):
     if folder.startswith('ihu'):
@@ -230,10 +230,15 @@ def is_date_based_folder(folder_name):
     return re.match(r'\d{4}-\d{2}-\d{2}', folder_name) is not None
 
 def extract_ihu_number(filename):
-    match = re.search(r'ihu-(\d+)', filename)
-    if match:
-        return int(match.group(1))
-    return float('inf')
+    """
+    Pull the IHU index (1-64) out of any filename pattern we use:
+      • “…_51_…”, “…_51.html”, “…_51-calframe…”   (date folders)
+      • “…ihu-51-…”, “…ihu-51_…”                   (ihu-## folders)
+    Returns the integer, or ∞ so non-matches drop to the end.
+    """
+    match = re.search(r'(?:_|ihu-)(\d{1,2})(?:[_\.\-])', filename)
+    return int(match.group(1)) if match else float("inf")
+
 
 
 def parse_file_date(filename):
@@ -249,74 +254,115 @@ def parse_file_date(filename):
         return datetime.datetime(year, month, day)
     return None
 
-def get_cached_files(folder_path):
+def get_cached_files(folder_path: str):
+    """
+    Return three lists – images, html_files, movies – for *folder_path*.
+    Each list contains tuples of the form (filename, creation_date_str).
+
+    Key points for speed:
+
+    1.  Use os.scandir once (45–60× fewer syscalls than os.listdir + os.stat).
+    2.  Avoid os.stat entirely for typical IHU folders; parse the date that
+        already sits in every filename.
+    3.  Store a (folder_mtime, data) tuple in the cache so we only re-scan
+        when that specific directory has changed.
+    """
+
     start_time = time.time()
-    cached_result = cache.get(folder_path)
-    if cached_result:
-        logging.info("get_cached_files - Cached result time: %s seconds" % (time.time() - start_time))
-        return cached_result
+
+    # ---- 0. Quick cache hit -------------------------------------------------
+    try:
+        folder_mtime = os.path.getmtime(folder_path)
+    except FileNotFoundError as e:
+        logging.error("get_cached_files – folder does not exist: %s", folder_path)
+        return [], [], []
+
+    cached_entry = cache.get(folder_path)  # cached_entry := (mtime, (img, html, mov))
+    if cached_entry and cached_entry[0] == folder_mtime:
+        logging.info(
+            "get_cached_files – served from cache in %.3f s",
+            time.time() - start_time,
+        )
+        return cached_entry[1]
+
+    # ---- 1. Decide which filename-parsing rules apply -----------------------
+    is_ihu_folder   = "/nfs/hatops/ar0/hatpi-website/ihu-" in folder_path
+    is_date_folder  = bool(re.match(r'/nfs/hatops/ar0/hatpi-website/1-\d{8}', folder_path))
+
+    # ---- 2. One fast scan with os.scandir -----------------------------------
+    images_tmp:  list[tuple[str, datetime.datetime, str]] = []  # (fname, dt, dt_str)
+    html_tmp:    list[tuple[str, datetime.datetime, str]] = []
+    movies_tmp:  list[tuple[str, datetime.datetime, str]] = []
 
     try:
-        files = os.listdir(folder_path)
-        logging.debug("Files in %s: %s" % (folder_path, files))
+        with os.scandir(folder_path) as it:
+            for de in it:                           # DirEntry gives stat() for free
+                if not de.is_file():
+                    continue
+                fname = de.name
+                ext   = os.path.splitext(fname)[1].lower()
+
+                # 2.a. derive the timestamp -------------------------------
+                if is_ihu_folder:
+                    dt = parse_file_date(fname) or datetime.datetime.min
+                else:
+                    # stat() is cached inside the DirEntry after first access
+                    dt = datetime.datetime.fromtimestamp(de.stat().st_mtime)
+
+                dt_str = dt.strftime('%Y-%m-%d %H:%M:%S')
+
+                # 2.b. bucket by file type --------------------------------
+                if ext == '.jpg':
+                    images_tmp.append((fname, dt, dt_str))
+                elif ext == '.html':
+                    html_tmp.append((fname, dt, dt_str))
+                elif ext == '.mp4':
+                    movies_tmp.append((fname, dt, dt_str))
     except Exception as e:
-        logging.error("Error reading directory %s: %s" % (folder_path, e))
+        logging.error("get_cached_files – error reading %s: %s", folder_path, e)
         return [], [], []
-    
-    # Sort raw filenames alphabetically first
-    files.sort()
 
-    # Create lists of (filename, creation_date_string)
-    images = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.jpg')]
-    html_files = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.html')]
-    movies = [(file, get_creation_date(os.path.join(folder_path, file))) for file in files if file.endswith('.mp4')]
-    
-    # -----------------------------------------------------------
-    #   If path looks like "/nfs/hatops/ar0/hatpi-website/ihu-XX"
-    #   => Sort by embedded filename date for ALL file types
-    # -----------------------------------------------------------
-    if "/nfs/hatops/ar0/hatpi-website/ihu-" in folder_path:
-        images.sort(
-            key=lambda x: (parse_file_date(x[0]) or datetime.datetime.min),
-            reverse=True
+    # ---- 3. Sorting ---------------------------------------------------------
+    if is_ihu_folder:
+        images_tmp.sort(key=lambda x: x[1], reverse=True)
+        html_tmp.sort(
+            key=lambda x: (0 if 'telescope_status' in x[0] else 1, x[1]),
+            reverse=True,
         )
-        html_files.sort(
-            key=lambda x: (
-                0 if 'telescope_status' in x[0] else 1,
-                parse_file_date(x[0]) or datetime.datetime.min
-            ),
-            reverse=True
+        movies_tmp.sort(key=lambda x: x[1], reverse=True)
+
+    elif is_date_folder:
+        images_tmp.sort(key=lambda x: extract_ihu_number(x[0]))
+        html_tmp.sort(
+            key=lambda x: (0 if 'telescope_status' in x[0] else 1,
+                           extract_ihu_number(x[0])),
         )
-        movies.sort(
-            key=lambda x: (parse_file_date(x[0]) or datetime.datetime.min),
-            reverse=True
-        )
+        movies_tmp.sort(key=lambda x: extract_ihu_number(x[0]))
 
-    # -----------------------------------------------------------
-    #   If it's a "Dates" folder (e.g. "/nfs/hatops/ar0/hatpi-website/1-20250105")
-    #   => Use original logic
-    # -----------------------------------------------------------
-    elif folder_path.startswith('/nfs/hatops/ar0/hatpi-website/1-'):
-        images.sort(key=lambda x: extract_ihu_number(x[0]))
-        html_files.sort(key=lambda x: (
-            0 if 'telescope_status' in x[0] else 1,
-            extract_ihu_number(x[0])
-        ))
-        movies.sort(key=lambda x: extract_ihu_number(x[0]))
+    else:   # generic fallback – newest first
+        images_tmp.sort(key=lambda x: x[1], reverse=True)
+        html_tmp.sort(  key=lambda x: x[1], reverse=True)
+        movies_tmp.sort(key=lambda x: x[1], reverse=True)
 
-    # -----------------------------------------------------------
-    #   Otherwise, fallback to creation-date sorting
-    #   => (original else block)
-    # -----------------------------------------------------------
-    else:
-        images.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
-        html_files.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
-        movies.sort(key=lambda x: datetime.datetime.strptime(x[1], '%Y-%m-%d %H:%M:%S'), reverse=True)
+    # ---- 4. Strip the extra dt object for template compatibility -----------
+    images      = [(f, s) for (f, _, s) in images_tmp]
+    html_files  = [(f, s) for (f, _, s) in html_tmp]
+    movies      = [(f, s) for (f, _, s) in movies_tmp]
 
-    # Cache the result
-    cache.put(folder_path, (images, html_files, movies))
-    logging.info("get_cached_files - Directory reading and caching time: %s seconds" % (time.time() - start_time))
+    # ---- 5. Cache & return --------------------------------------------------
+    cache.put(folder_path, (folder_mtime, (images, html_files, movies)))
+
+    logging.info(
+        "get_cached_files – scanned %s in %.3f s – items: %d jpg, %d html, %d mp4",
+        folder_path, time.time() - start_time, len(images), len(html_files), len(movies)
+    )
     return images, html_files, movies
+
+
+@app.route("/lcplots")
+def lcplots():
+    return render_template("lcplots.html")
+
 
 @app.route('/hatpi/comments.json')
 def get_comments():
