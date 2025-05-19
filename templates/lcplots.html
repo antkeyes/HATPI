@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>HATPI - Light Curve Plots</title>
+    <link rel="stylesheet" href="/hatpi/static/styles.css">
+    <link rel="icon" type="image/png" href="/hatpi/images/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Image overlay styles */
+        .image-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        
+        .overlay-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            box-sizing: border-box;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .overlay-content {
+            max-width: 90%;
+            max-height: 85%;
+            position: relative;
+            margin-top: 50px; /* Add spacing for the header */
+        }
+        
+        .overlay-image {
+            max-width: 100%;
+            max-height: 85vh;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .overlay-title {
+            color: white;
+            text-align: center;
+            margin: 10px 0;
+            font-size: 1.2em;
+        }
+        
+        .overlay-close {
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            z-index: 1100;
+        }
+        
+        .overlay-nav {
+            display: flex;
+            align-items: center;
+        }
+        
+        .nav-button {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 15px;
+            cursor: pointer;
+            font-size: 24px;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 10px;
+        }
+        
+        .nav-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body class="lcplots-page">
+    <!-- Background animation elements -->
+    <div class="background-container">
+        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1231630/moon2.png" alt="">
+        <div class="stars"></div>
+        <div class="twinkling"></div>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="header">
+            <h1>Light Curve Plots</h1>
+            <a href="/hatpi" class="pill-button-unique">Back to Main Page</a>
+        </div>
+
+        <!-- Breadcrumb navigation -->
+        <div class="breadcrumb-nav">
+            <a href="/hatpi/lcplots" class="breadcrumb-item">Home</a>
+            {% if current_dir %}
+                <span class="breadcrumb-separator">/</span>
+                <a href="/hatpi/lcplots" class="breadcrumb-item">lcplots</a>
+                {% for part in current_dir.split('/') %}
+                    {% if part %}
+                        <span class="breadcrumb-separator">/</span>
+                        {% if loop.last %}
+                            <span class="breadcrumb-current">{{ part }}</span>
+                        {% else %}
+                            {% set path_parts = current_dir.split('/') %}
+                            {% set path = '/'.join(path_parts[:loop.index]) %}
+                            <a href="/hatpi/lcplots/{{ path }}" class="breadcrumb-item">{{ part }}</a>
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="lcplots-container">
+            <div class="file-list">
+                <div class="file-items-header">
+                    <div class="file-name-header">Name</div>
+                    <div class="file-date-header">Modified Date</div>
+                    <div class="file-size-header">Size</div>
+                </div>
+                <div class="file-items-container">
+                    {% if current_dir %}
+                        <!-- Add parent directory navigation option -->
+                        <div class="file-item">
+                            <div class="file-name">
+                                {% set path_parts = current_dir.split('/') %}
+                                {% if path_parts|length > 1 %}
+                                    {% set parent_path = '/'.join(path_parts[:-1]) %}
+                                    <a href="/hatpi/lcplots/{{ parent_path }}">
+                                {% else %}
+                                    <a href="/hatpi/lcplots">
+                                {% endif %}
+                                    <i class="fas fa-arrow-up"></i> Parent Directory
+                                </a>
+                            </div>
+                            <div class="file-date"></div>
+                            <div class="file-size"></div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if files %}
+                        {% for file in files %}
+                            <div class="file-item">
+                                <div class="file-name">
+                                    {% if file.is_dir %}
+                                        <a href="{{ file.path }}">
+                                            <i class="fas fa-folder"></i> {{ file.name }}
+                                        </a>
+                                    {% else %}
+                                        {% if file.name.endswith('.jpg') or file.name.endswith('.png') %}
+                                            <a href="#" class="image-link" data-path="{{ file.path }}" data-name="{{ file.name }}">
+                                                <i class="fas fa-image"></i> {{ file.name }}
+                                            </a>
+                                        {% else %}
+                                            <a href="{{ file.path }}" target="_blank">
+                                                {% if file.name.endswith('.pdf') %}
+                                                    <i class="fas fa-file-pdf"></i>
+                                                {% elif file.name.endswith('.txt') %}
+                                                    <i class="fas fa-file-alt"></i>
+                                                {% elif file.name.endswith('.fits') %}
+                                                    <i class="fas fa-star"></i>
+                                                {% else %}
+                                                    <i class="fas fa-file"></i>
+                                                {% endif %}
+                                                {{ file.name }}
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                                <div class="file-date">{{ file.modified }}</div>
+                                <div class="file-size">{{ file.size }}</div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-files-message">No files found in this directory</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Overlay -->
+    <div id="imageOverlay" class="image-overlay">
+        <div class="overlay-header">
+            <div class="overlay-nav">
+                <button id="prevButton" class="nav-button"><i class="fas fa-chevron-left"></i></button>
+                <button id="nextButton" class="nav-button"><i class="fas fa-chevron-right"></i></button>
+            </div>
+            <button id="overlayClose" class="overlay-close">&times;</button>
+        </div>
+        <div class="overlay-content">
+            <img id="overlayImage" class="overlay-image" src="" alt="Light Curve Plot">
+        </div>
+        <div id="overlayTitle" class="overlay-title"></div>
+    </div>
+
+    <script src="/hatpi/static/scripts.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get all image links
+            const imageLinks = document.querySelectorAll('.image-link');
+            const imageOverlay = document.getElementById('imageOverlay');
+            const overlayImage = document.getElementById('overlayImage');
+            const overlayTitle = document.getElementById('overlayTitle');
+            const overlayClose = document.getElementById('overlayClose');
+            const prevButton = document.getElementById('prevButton');
+            const nextButton = document.getElementById('nextButton');
+            
+            // Store all image links in an array to enable navigation
+            const allImages = Array.from(imageLinks);
+            let currentIndex = 0;
+            
+            // Function to open the overlay with a specific image
+            function openOverlay(index) {
+                currentIndex = index;
+                const link = allImages[currentIndex];
+                overlayImage.src = link.dataset.path;
+                overlayTitle.textContent = link.dataset.name;
+                imageOverlay.style.display = 'flex';
+                document.body.style.overflow = 'hidden'; // Prevent scrolling while overlay is open
+            }
+            
+            // Function to close the overlay
+            function closeOverlay() {
+                imageOverlay.style.display = 'none';
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+            
+            // Function to navigate to the previous image
+            function showPreviousImage() {
+                currentIndex = (currentIndex - 1 + allImages.length) % allImages.length;
+                openOverlay(currentIndex);
+            }
+            
+            // Function to navigate to the next image
+            function showNextImage() {
+                currentIndex = (currentIndex + 1) % allImages.length;
+                openOverlay(currentIndex);
+            }
+            
+            // Add click event listeners to image links
+            imageLinks.forEach((link, index) => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    openOverlay(index);
+                });
+            });
+            
+            // Add event listeners for overlay controls
+            overlayClose.addEventListener('click', closeOverlay);
+            prevButton.addEventListener('click', showPreviousImage);
+            nextButton.addEventListener('click', showNextImage);
+            
+            // Add keyboard event listeners for navigation
+            document.addEventListener('keydown', function(e) {
+                if (imageOverlay.style.display === 'flex') {
+                    if (e.key === 'ArrowLeft') {
+                        showPreviousImage();
+                    } else if (e.key === 'ArrowRight') {
+                        showNextImage();
+                    } else if (e.key === 'Escape') {
+                        closeOverlay();
+                    }
+                }
+            });
+            
+            // Also close the overlay when clicking outside the image
+            imageOverlay.addEventListener('click', function(e) {
+                if (e.target === imageOverlay) {
+                    closeOverlay();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html> 

@@ -232,8 +232,8 @@ def is_date_based_folder(folder_name):
 def extract_ihu_number(filename):
     """
     Pull the IHU index (1-64) out of any filename pattern we use:
-      • “…_51_…”, “…_51.html”, “…_51-calframe…”   (date folders)
-      • “…ihu-51-…”, “…ihu-51_…”                   (ihu-## folders)
+      • "…_51_…", "…_51.html", "…_51-calframe…"   (date folders)
+      • "…ihu-51-…", "…ihu-51_…"                   (ihu-## folders)
     Returns the integer, or ∞ so non-matches drop to the end.
     """
     match = re.search(r'(?:_|ihu-)(\d{1,2})(?:[_\.\-])', filename)
@@ -360,9 +360,243 @@ def get_cached_files(folder_path: str):
 
 
 @app.route("/lcplots")
+@app.route("/lcplots/")
 def lcplots():
-    return render_template("lcplots.html")
+    """List the contents of the LCPLOT directory"""
+    lcplot_dir = "/nfs/php2/ar0/P/HP1/REDUCTION/LCPLOT"
+    
+    files = []
+    directories = []
 
+    try:
+        # First, get all items in the main directory
+        for item_name in sorted(os.listdir(lcplot_dir)):
+            item_path = os.path.join(lcplot_dir, item_name)
+            
+            # If it's a file, add it directly
+            if os.path.isfile(item_path):
+                mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(item_path))
+                formatted_time = mod_time.strftime('%Y-%m-%d %H:%M:%S')
+                
+                size_bytes = os.path.getsize(item_path)
+                size_mb = size_bytes / (1024 * 1024)
+                
+                files.append({
+                    'name': item_name,
+                    'path': f"/hatpi/lcplots/{item_name}",
+                    'modified': formatted_time,
+                    'size': f"{size_mb:.2f} MB",
+                    'is_dir': False
+                })
+            
+            # If it's a directory, add it and its files
+            elif os.path.isdir(item_path):
+                # Add the directory itself first
+                mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(item_path))
+                formatted_time = mod_time.strftime('%Y-%m-%d %H:%M:%S')
+                
+                dir_entry = {
+                    'name': item_name,
+                    'path': f"/hatpi/lcplots/{item_name}",  # Changed from lcplot to lcplots to match route
+                    'modified': formatted_time,
+                    'size': "-",
+                    'is_dir': True
+                }
+                directories.append(dir_entry)
+    except Exception as e:
+        app.logger.error(f"Error reading LCPLOT directory: {str(e)}")
+    
+    # Combine directories and files, with directories first
+    all_items = directories + files
+    return render_template("lcplots.html", files=all_items)
+
+@app.route('/lcplots/<path:filepath>')
+def lcplots_filepath(filepath):
+    """Alternate route for the lcplots page when accessed directly through Flask without the /hatpi prefix"""
+    # Just redirect to the main handler
+    return serve_lcplot(filepath)
+
+@app.route('/hatpi/lcplots/<path:filepath>')  # Changed from lcplot to lcplots to match other routes
+def serve_lcplot(filepath):
+    """Serve files from the LCPLOT directory"""
+    lcplot_dir = "/nfs/php2/ar0/P/HP1/REDUCTION/LCPLOT"
+    
+    # Log the request for debugging
+    app.logger.info(f"Serving LCPLOT: {filepath}")
+    
+    # Handle virtual category paths
+    path_parts = filepath.split('/')
+    
+    # Categories to filter by
+    first_level_categories = ['aperphot', 'subphot']
+    second_level_categories = ['aper0', 'aper1', 'aper2', 'bad_epochs', 'template_selection']
+    third_level_categories = ['base', 'binned', 'binned_curves']
+    
+    # Initialize filter and real path
+    filters = []
+    real_path = filepath
+    
+    # Extract filters from path
+    if len(path_parts) > 1:
+        # Check for first level filter (aperphot/subphot)
+        if path_parts[-1] in first_level_categories:
+            # We're at the first level of filtering
+            filters.append(path_parts[-1])
+            real_path = '/'.join(path_parts[:-1])
+        elif len(path_parts) > 2 and path_parts[-2] in first_level_categories and path_parts[-1] in second_level_categories:
+            # We're at the second level of filtering
+            filters.append(path_parts[-2])  # First level category (aperphot/subphot)
+            filters.append(path_parts[-1])  # Second level category (aper0/aper1/etc)
+            real_path = '/'.join(path_parts[:-2])
+        elif len(path_parts) > 3 and path_parts[-3] in first_level_categories and path_parts[-2] in second_level_categories and path_parts[-1] in third_level_categories:
+            # We're at the third level of filtering
+            filters.append(path_parts[-3])  # First level category (aperphot/subphot)
+            filters.append(path_parts[-2])  # Second level category (aper0/aper1/etc)
+            filters.append(path_parts[-1])  # Third level category (base/binned/binned_curves)
+            real_path = '/'.join(path_parts[:-3])
+    
+    app.logger.info(f"Using filters: {filters}, real path: {real_path}")
+    
+    # Securely join the path to prevent directory traversal attacks
+    file_path = os.path.normpath(os.path.join(lcplot_dir, real_path))
+    
+    # Check if path is still under the LCPLOT directory to prevent directory traversal
+    if not file_path.startswith(lcplot_dir):
+        return "Access denied", 403
+    
+    if not os.path.exists(file_path):
+        app.logger.error(f"File not found: {file_path}")
+        return "File not found", 404
+    
+    if os.path.isdir(file_path):
+        subfiles = []
+        subdirs = []
+        
+        # Check if this is a direct IHU directory (not a subcategory yet)
+        is_ihu_dir = re.match(r'^ihu\d+$', os.path.basename(file_path)) is not None
+        
+        # Determine the current level of filtering
+        if is_ihu_dir and not filters:
+            # Top level of an IHU directory - show first level categories
+            for category in first_level_categories:
+                subdirs.append({
+                    'name': category,
+                    'path': f"/hatpi/lcplots/{filepath}/{category}",
+                    'modified': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'size': "-",
+                    'is_dir': True
+                })
+        elif len(filters) == 1 and filters[0] in first_level_categories:
+            # First level of filtering - show second level categories
+            for category in second_level_categories:
+                subdirs.append({
+                    'name': category,
+                    'path': f"/hatpi/lcplots/{filepath}/{category}",
+                    'modified': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'size': "-",
+                    'is_dir': True
+                })
+        elif len(filters) == 2 and filters[0] in first_level_categories and filters[1] in ['aper0', 'aper1', 'aper2']:
+            # Second level is aper0/1/2 - add the third level of categorization
+            subdirs.append({
+                'name': 'base',
+                'path': f"/hatpi/lcplots/{filepath}/base",
+                'modified': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'size': "-",
+                'is_dir': True
+            })
+            subdirs.append({
+                'name': 'binned',
+                'path': f"/hatpi/lcplots/{filepath}/binned",
+                'modified': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'size': "-",
+                'is_dir': True
+            })
+            subdirs.append({
+                'name': 'binned_curves',
+                'path': f"/hatpi/lcplots/{filepath}/binned_curves",
+                'modified': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'size': "-",
+                'is_dir': True
+            })
+        else:
+            try:
+                # List the actual directory contents
+                for item in sorted(os.listdir(file_path)):
+                    item_path = os.path.join(file_path, item)
+                    
+                    # Only add real directories if we're not filtering
+                    if os.path.isdir(item_path) and not filters:
+                        mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(item_path))
+                        formatted_time = mod_time.strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        subdirs.append({
+                            'name': item,
+                            'path': f"/hatpi/lcplots/{filepath}/{item}",
+                            'modified': formatted_time,
+                            'size': "-",
+                            'is_dir': True
+                        })
+                    elif os.path.isfile(item_path):
+                        # Apply filtering criteria
+                        should_include = True
+                        
+                        # Apply basic filters first
+                        if len(filters) >= 2:
+                            # Check first two filters (aperphot/subphot and aper0/1/2)
+                            for filter_term in filters[:2]:
+                                if filter_term not in item:
+                                    should_include = False
+                                    break
+                        
+                        # Apply third level filtering if needed
+                        if should_include and len(filters) == 3 and filters[1] in ['aper0', 'aper1', 'aper2']:
+                            aper_filter = filters[1]  # aper0, aper1, or aper2
+                            third_filter = filters[2]  # base, binned, or binned_curves
+                            
+                            # Handle each third-level filter type
+                            if third_filter == 'base':
+                                # Include only files like "*_aper0.jpg" without "binned"
+                                if not item.endswith(f"_{aper_filter}.jpg") or "_binned" in item:
+                                    should_include = False
+                            elif third_filter == 'binned':
+                                # Include only files like "*_aper0_binned.jpg" without "curves"
+                                if not item.endswith(f"_{aper_filter}_binned.jpg") or "_curves" in item:
+                                    should_include = False
+                            elif third_filter == 'binned_curves':
+                                # Include only files like "*_aper0_binned_curves.jpg"
+                                if not item.endswith(f"_{aper_filter}_binned_curves.jpg"):
+                                    should_include = False
+                        
+                        # Skip files that don't match our filters
+                        if not should_include:
+                            continue
+                        
+                        # Add matching files to our list
+                        mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(item_path))
+                        formatted_time = mod_time.strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        size_bytes = os.path.getsize(item_path)
+                        size_mb = size_bytes / (1024 * 1024)
+                        
+                        subfiles.append({
+                            'name': item,
+                            'path': f"/hatpi/lcplots/{real_path}/{item}",
+                            'modified': formatted_time,
+                            'size': f"{size_mb:.2f} MB",
+                            'is_dir': False
+                        })
+            except Exception as e:
+                app.logger.error(f"Error reading directory {file_path}: {str(e)}")
+        
+        # Combine directories and files for display, with directories first
+        all_items = subdirs + subfiles
+        
+        # Use the original filepath for display in the breadcrumb
+        return render_template("lcplots.html", files=all_items, current_dir=filepath)
+    
+    # If it's a file, serve it
+    return send_file(file_path)
 
 @app.route('/hatpi/comments.json')
 def get_comments():
@@ -445,7 +679,7 @@ def ihu_cell(cell_number):
     # Load keyboard flags
     keyboard_flags = load_keyboard_flags()
 
-    # Because your real folder or your JSON might use “ihu03”
+    # Because your real folder or your JSON might use "ihu03"
     alt_folder_name = folder_name.replace('ihu-', 'ihu')
 
     flagged_for_folder = []
