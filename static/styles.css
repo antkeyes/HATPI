@@ -1519,3 +1519,73 @@ body.index-page #flaggedOverlay {
 .file-item:last-child {
     border-bottom: none;
 }
+
+/* Styles for the Daily Skyflats & Task Runtimes page */
+.dual-list-container {
+    display: flex;
+    gap: 20px;
+    height: 100%;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Add max-height to folder-content-container for skyflats page */
+.skyflats-runtimes-page .folder-content-container {
+    display: block;
+    grid-template-columns: none;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 550px;
+    overflow-y: auto;
+    scrollbar-color: #8E97A1 #21262E;
+    scrollbar-width: thin;
+}
+
+.skyflats-container,
+.runtimes-container {
+    width: calc((100% - 60px) / 2);
+    background-color: #1C1F26;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.skyflats-container h3,
+.runtimes-container h3 {
+    color: #F0F0F0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 1.2em;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.skyflats-container .images-list,
+.runtimes-container .images-list {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-color: #8E97A1 #21262E;
+    scrollbar-width: thin;
+}
+
+#skyflats-runtimes-button {
+    margin-top: 10px;
+    text-align: center;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#skyflats-runtimes-button:hover {
+    background-color: #87689E;
+    color: #d4d4d4;
+}
+
+/* Add margin below the back-to-home button on skyflats page */
+.skyflats-runtimes-page .pills-container {
+    margin-bottom: 50px;
+}

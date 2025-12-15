@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="/hatpi/images/favicon.png">
 </head>
 
-<body>
+<body class="index-page">
     <!-- Background animation elements -->
     <div class="background-container">
         <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1231630/moon2.png" alt="">
@@ -28,19 +28,29 @@
         <!-- New split container: left for Dates, right for IHU grid -->
         <div class="split-container">
             <!-- Left: Dates content -->
-            <div class="dates-container">
-                <div class="file-list">
-                    <div class="file-items-container">
-                        {% for folder, creation_date in folders %}
-                        <div class="file-item">
-                            <div class="file-name">
-                                <a href="{{ folder }}/">{{ folder | format_folder }}</a>
+            <div class="left-column">
+                <div class="dates-container">
+                    <div class="file-list">
+                        <div class="file-items-container">
+                            {% for folder, creation_date in folders %}
+                            <div class="file-item">
+                                <div class="file-name">
+                                    <a href="{{ folder }}/">{{ folder | format_folder }}</a>
+                                </div>
+                                <div class="file-date">{{ creation_date }}</div>
                             </div>
-                            <div class="file-date">{{ creation_date }}</div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
                     </div>
                 </div>
+                
+                <a id="lcplots-button" href="/hatpi/lcplots" class="pill-button-unique">
+                    Light Curve Plots
+                </a>
+                
+                <a id="skyflats-runtimes-button" href="/hatpi/skyflats_runtimes" class="pill-button-unique">
+                    Daily Skyflats & Task Runtimes
+                </a>
             </div>
 
             <!-- Right: IHU grid content -->
@@ -53,7 +63,6 @@
                 </div>
             </div>
         </div>
-
 
         <!-- Toggle Buttons for Comments and Tagged Images -->
         <div class="comments-tags-toggle">
@@ -81,7 +90,7 @@
                             {% endif %}
                             <span class="comment-filename">
                                 <a href="{{ item.file_path }}" target="_blank">
-                                    {{ item.file_path.split('/')[-1] | format_filename }}
+                                    {{ item.file_path | format_filename }}
                                 </a>
                             </span>
                             <span class="comment-timestamp">{{ item.timestamp }}</span>
@@ -107,7 +116,7 @@
         </div>
 
         <!-- New container for Tagged Images -->
-        <div id="all-tagged-images-container" class="all-tagged-images-container" style="display: none;">
+        <div id="taggedImagesContainer" class="all-tagged-images-container" style="display: none;">
             <p>Loading tagged images...</p>
         </div>
 
@@ -456,58 +465,71 @@
         });
     </script>
     <script>
-        function toggleCommentsTagged(view) {
+        function toggleCommentsTagged(view, event) {
+            if (event) event.preventDefault();
+
+            const currentScroll = window.pageYOffset;
             if (view === 'comments') {
                 document.getElementById('comments-container').style.display = 'grid';
-                document.getElementById('all-tagged-images-container').style.display = 'none';
+                document.getElementById('taggedImagesContainer').style.display = 'none';
                 document.getElementById('show-comments').classList.add('active');
                 document.getElementById('show-tagged').classList.remove('active');
             } else if (view === 'tagged') {
                 document.getElementById('comments-container').style.display = 'none';
-                document.getElementById('all-tagged-images-container').style.display = 'block';
+                document.getElementById('taggedImagesContainer').style.display = 'block';
                 document.getElementById('show-comments').classList.remove('active');
                 document.getElementById('show-tagged').classList.add('active');
                 loadTaggedImages(); // load the tagged images when view is switched
             }
+
+            setTimeout(() => {
+                window.scrollTo(0, currentScroll);
+            }, 0);
+
         }
 
-        function loadTaggedImages() {
-            fetch('/hatpi/keyboard_flags.json')
-                .then(response => response.json())
-                .then(data => {
-                    const container = document.getElementById('all-tagged-images-container');
-                    container.innerHTML = '';  // clear the container
-
-                    // Loop over the entries in the keyboard_flags JSON
-                    for (const filePath in data) {
-                        if (data.hasOwnProperty(filePath)) {
-                            const entry = data[filePath];
-
-                            // Create an element to display the entry.
-                            // You can adjust the markup and styling as needed.
-                            const entryDiv = document.createElement('div');
-                            entryDiv.className = 'tagged-image-entry';
-                            entryDiv.innerHTML = `
-                    <a href="/hatpi${filePath}" target="_blank">${filePath.split('/').pop()}</a>
-                    <div class="tag-flags"><strong>Flags:</strong> ${entry.flags.join(', ')}</div>
-                    <div class="tag-timestamp"><strong>Timestamp:</strong> ${entry.timestamp}</div>
-                    <div class="tag-author"><strong>Author:</strong> ${entry.author}</div>
-                  `;
-                            container.appendChild(entryDiv);
-                        }
-                    }
-
-                    // If no entries were found, show a friendly message.
-                    if (Object.keys(data).length === 0) {
-                        container.innerHTML = '<p>No tagged images found.</p>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading tagged images:', error);
-                    document.getElementById('all-tagged-images-container').innerHTML = '<p>Error loading tagged images.</p>';
-                });
-        }
     </script>
+    <script>
+        // This function is only for the flagged overlay in index.html.
+        function highlightActiveFlaggedItemIndex(linkElement) {
+            // Find the flagged group container that this link is in.
+            const groupCard = linkElement.closest('.tagged-flag-card');
+
+            // Remove active styling from flagged items only in this group.
+            groupCard.querySelectorAll('.tagged-item').forEach(item => {
+                item.classList.remove('active-index');
+            });
+
+            // Add active styling to the flagged item of this link.
+            const parentItem = linkElement.closest('.tagged-item');
+            if (parentItem) {
+                parentItem.classList.add('active-index');
+                parentItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+
+        // Example: update your click handler in loadTaggedImages().
+        // In your loadTaggedImages() function (where flagged links are created), ensure that each
+        // flagged link gets a data-index attribute. Then, attach the click handler:
+        document.addEventListener('DOMContentLoaded', function () {
+            const taggedLinks = document.querySelectorAll('#taggedImagesContainer .tagged-file-link');
+            taggedLinks.forEach((link, index) => {
+                // Ensure a data-index is set if not already.
+                link.setAttribute('data-index', index);
+                link.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    // Your existing logic to open the flagged overlay...
+                    // Then, call the new highlighting function:
+                    highlightActiveFlaggedItemIndex(link);
+                    // (If you already have a function like openFlaggedGallery() that takes an index,
+                    // you can also pass 'link' to it so that it uses this new highlight function.)
+                });
+            });
+        });
+    </script>
+
+
 
 </body>
 

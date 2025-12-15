@@ -4,6 +4,12 @@ log_file="/nfs/hatops/ar0/hatpi-website/logs/restart_flask.log"
 
 echo "Restart script started at $(date)" >> $log_file
 
+# If Gunicorn is running, skip restarting the development server
+if pgrep -f "gunicorn.*app:app" > /dev/null 2>&1 || [ -f "/nfs/hatops/ar0/hatpi-website/gunicorn.pid" ] && ps -p "$(cat /nfs/hatops/ar0/hatpi-website/gunicorn.pid 2>/dev/null)" > /dev/null 2>&1; then
+    echo "Gunicorn detected; skipping Flask dev server restart." >> $log_file
+    exit 0
+fi
+
 # Kill any running Flask processes
 pkill -f "flask run"
 if [ $? -eq 0 ]; then

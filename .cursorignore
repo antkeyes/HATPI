@@ -1,0 +1,11 @@
+# ignore any folder beginning with “1-”
+1-*/
+
+# ignore any folder beginning with “ihu-”
+ihu-*/
+
+# ignore these exact directories
+markup_images/
+__pycache__/
+RED/
+SUB/

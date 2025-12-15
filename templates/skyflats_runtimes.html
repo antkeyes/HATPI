@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>HATPI - Daily Skyflats & Task Runtimes</title>
+    <link rel="stylesheet" href="/hatpi/static/styles.css">
+    <link rel="icon" type="image/png" href="/hatpi/images/favicon.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+
+<body class="folder-page skyflats-runtimes-page">
+    <!-- Background animation elements -->
+    <div class="background-container">
+        <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1231630/moon2.png" alt="">
+        <div class="stars"></div>
+        <div class="twinkling"></div>
+    </div>
+
+    <div class="content-wrapper">
+        <div class="folder-page-flex-container">
+            <div class="folder-left-panel">
+                <h1 class="page-title">Daily Skyflats & Task Runtimes</h1>
+                
+                <div class="pills-container">
+                    <div class="pill-container-unique">
+                        <!-- Empty pill container for spacing -->
+                    </div>
+                    <a href="https://hatops.astro.princeton.edu/hatpi" class="back-to-home">🏠</a>
+                </div>
+
+                <!-- Simplified folder content container -->
+                <div class="folder-content-container">
+                    <!-- Two side-by-side images-list containers -->
+                    <div class="dual-list-container">
+                        <!-- Left: Skyflats -->
+                        <div class="skyflats-container">
+                            <h3>Skyflat Metrics</h3>
+                            <div class="images-list">
+                                <div class="skyflats">
+                                    {% for skyflat_file in skyflat_files %}
+                                    <div class="file-item" data-filename="{{ skyflat_file.name }}">
+                                        <div class="file-name">
+                                            <a href="#" onclick="loadPlot('/hatpi/daily/{{ skyflat_file.name }}'); return false;">
+                                                <i class="fas fa-chart-line"></i> {{ skyflat_file.display_name }}
+                                            </a>
+                                        </div>
+                                        <div class="file-date">{{ skyflat_file.modified }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right: Task Runtimes -->
+                        <div class="runtimes-container">
+                            <h3>Task Runtimes</h3>
+                            <div class="images-list">
+                                <div class="runtimes">
+                                    {% for runtime_file in runtime_files %}
+                                    <div class="file-item" data-filename="{{ runtime_file.name }}">
+                                        <div class="file-name">
+                                            <a href="#" onclick="loadPlot('/hatpi/daily/{{ runtime_file.name }}'); return false;">
+                                                <i class="fas fa-clock"></i> {{ runtime_file.display_name }}
+                                            </a>
+                                        </div>
+                                        <div class="file-date">{{ runtime_file.modified }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/hatpi/static/scripts.js"></script>
+    <script>
+        // loadPlot function for HTML plots - loads Bokeh library before opening gallery
+        function loadPlot(filePath) {
+            var script = document.createElement('script');
+            script.src = "https://cdn.bokeh.org/bokeh/release/bokeh-3.1.0.min.js";
+            script.onload = function () {
+                Bokeh.set_log_level("warning");
+                openGalleryCustom(filePath);
+            };
+            document.head.appendChild(script);
+        }
+
+        // Custom openGallery function for skyflats page that handles our specific container structure
+        function openGalleryCustom(filePath) {
+            // Create gallery overlay if it doesn't exist
+            if (!window.galleryOverlay) {
+                window.galleryOverlay = document.createElement('div');
+                window.galleryOverlay.id = 'galleryOverlay';
+                window.galleryOverlay.className = 'gallery-overlay';
+                document.body.appendChild(window.galleryOverlay);
+            } else {
+                window.galleryOverlay.innerHTML = '';
+            }
+
+            window.currentFilePath = filePath;
+
+            // Create iframe for HTML content
+            const content = document.createElement('iframe');
+            content.src = filePath;
+            content.className = 'overlay-iframe gallery-content';
+            content.style.width = '90vw';
+            content.style.height = '85vh';
+            content.style.border = 'none';
+
+            // Create close button
+            const closeButton = document.createElement('button');
+            closeButton.innerText = 'esc';
+            closeButton.className = "closeButton";
+            closeButton.onclick = function() {
+                if (window.galleryOverlay) {
+                    document.body.removeChild(window.galleryOverlay);
+                    window.galleryOverlay = null;
+                }
+            };
+
+            // Add escape key handler
+            function handleEscape(event) {
+                if (event.key === 'Escape') {
+                    if (window.galleryOverlay) {
+                        document.body.removeChild(window.galleryOverlay);
+                        window.galleryOverlay = null;
+                    }
+                    document.removeEventListener('keydown', handleEscape);
+                }
+            }
+            document.addEventListener('keydown', handleEscape);
+
+            // Create content container
+            const contentContainer = document.createElement('div');
+            contentContainer.className = 'content-container';
+            contentContainer.style.display = 'flex';
+            contentContainer.style.justifyContent = 'center';
+            contentContainer.style.alignItems = 'center';
+            contentContainer.style.height = '100%';
+            contentContainer.style.width = '100%';
+
+            // Add content and close button to overlay
+            contentContainer.appendChild(content);
+            window.galleryOverlay.appendChild(contentContainer);
+            window.galleryOverlay.appendChild(closeButton);
+        }
+    </script>
+</body>
+
+</html> 

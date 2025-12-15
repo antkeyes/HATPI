@@ -1,0 +1,567 @@
+{
+    "1-634946_49-red-object-bin4.jpg_20251130231009488590": {
+        "comment": "Nice nebulosity",
+        "author": "Gaspar",
+        "timestamp": "2025-11-30 23:10:09",
+        "file_path": "/hatpi/markup_images/1-634946_49-red-object-bin4.jpg",
+        "markup_true": "\u270f\ufe0f",
+        "flags": []
+    },
+    "1-20241215_60_subframe_movie.mp4_20250620104547127007": {
+        "file_path": "/hatpi/ihu-60/1-20241215_60_subframe_movie.mp4",
+        "comment": "Some kind of error at end of night",
+        "author": "Guest",
+        "timestamp": "2025-06-20 10:45:47",
+        "markup_true": "",
+        "flags": []
+    },
+    "1-557308_02-red-dark-bin4.jpg_20250602222626999476": {
+        "file_path": "/hatpi/RED/1-20250601/ihu02/1-557308_02-red-dark-bin4.jpg",
+        "comment": "Why are there so many hot pixels? ",
+        "author": "Gaspar",
+        "timestamp": "2025-06-02 22:26:26",
+        "markup_true": "",
+        "flags": []
+    },
+    "1-556736_01-sub-object-bin4.jpg_20250602213012799527": {
+        "file_path": "/hatpi/SUB/1-20250601/ihu01/1-556736_01-sub-object-bin4.jpg",
+        "comment": "Cirrus clouds?",
+        "author": "Gaspar",
+        "timestamp": "2025-06-02 21:30:12",
+        "markup_true": "",
+        "flags": []
+    },
+    "1-556711_01-sub-object-bin4.jpg_20250602212943587580": {
+        "file_path": "/hatpi/SUB/1-20250601/ihu01/1-556711_01-sub-object-bin4.jpg",
+        "comment": "Strange subtraction pattern; stars appear in a patch to be poorly subtracted, and the patch of such density is moving from image to image. ",
+        "author": "Gaspar",
+        "timestamp": "2025-06-02 21:29:43",
+        "markup_true": "",
+        "flags": []
+    },
+    "1-556471_01-sub-object-bin4.jpg_20250602212419870082": {
+        "file_path": "/hatpi/SUB/1-20250601/ihu01/1-556471_01-sub-object-bin4.jpg",
+        "comment": "Dotted satellite trail due to fast spinning satellite?",
+        "author": "Gaspar",
+        "timestamp": "2025-06-02 21:24:19",
+        "markup_true": "",
+        "flags": [
+            "Trail",
+            "Other"
+        ]
+    },
+    "1-537155_03-red-object-bin4.jpg_20250430201737446147": {
+        "file_path": "/hatpi/RED/1-20250429/ihu03/1-537155_03-red-object-bin4.jpg",
+        "comment": "Nice shooting star",
+        "author": "Gaspar",
+        "timestamp": "2025-04-30 20:17:37",
+        "markup_true": "",
+        "flags": [
+            "Meteor"
+        ]
+    },
+    "1-20250429_02_calframe_movie.mp4_20250430201227111477": {
+        "file_path": "/hatpi/ihu-02/1-20250429_02_calframe_movie.mp4",
+        "comment": "Cirrus cloud crossings",
+        "author": "Gaspar",
+        "timestamp": "2025-04-30 20:12:27",
+        "markup_true": "",
+        "flags": [
+            "Clouds"
+        ]
+    },
+    "masterflat-ihu-05-20250408-01-glob-ss.jpg_20250409151647789919": {
+        "comment": "Probably stars.",
+        "author": "Attila",
+        "timestamp": "2025-04-09 15:16:47",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-05-20250408-01-glob-ss.jpg",
+        "markup_true": "\u270f\ufe0f",
+        "flags": []
+    },
+    "1-20241103_02_subframe_movie.mp4_20250319173532483301": {
+        "file_path": "/hatpi/1-20241103/1-20241103_02_subframe_movie.mp4",
+        "comment": "Cool",
+        "author": "Guest",
+        "timestamp": "2025-03-19 17:35:32",
+        "markup_true": "",
+        "flags": [
+            "Meteor"
+        ]
+    },
+    "masterflat-ihu-39-20250312-01-glob-ss.jpg_20250313090437813609": {
+        "file_path": "/hatpi/ihu-39/masterflat-ihu-39-20250312-01-glob-ss.jpg",
+        "comment": "Maculae. ",
+        "author": "Attila",
+        "timestamp": "2025-03-13 09:04:37",
+        "markup_true": "",
+        "flags": [
+            "Ice"
+        ]
+    },
+    "masterflat-ihu-33-20231114-01-glob-ss.jpg_20250312093844630928": {
+        "file_path": "/hatpi/ihu-33/masterflat-ihu-33-20231114-01-glob-ss.jpg",
+        "comment": "Cloudy flat. ",
+        "author": "Gaspar",
+        "timestamp": "2025-03-12 09:38:44",
+        "markup_true": "",
+        "flags": [
+            "Clouds"
+        ]
+    },
+    "masterflat-ihu-33-20250308-01-glob-ss.jpg_20250312090737373066": {
+        "comment": "Black hole.",
+        "author": "Attila",
+        "timestamp": "2025-03-12 09:07:37",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-33-20250308-01-glob-ss.jpg",
+        "markup_true": "\u270f\ufe0f",
+        "flags": []
+    },
+    "masterflat-ihu-33-20250311-01-glob-ss.jpg_20250312090647206398": {
+        "comment": "Another black hole.",
+        "author": "Attila",
+        "timestamp": "2025-03-12 09:06:47",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-33-20250311-01-glob-ss.jpg",
+        "markup_true": "\u270f\ufe0f",
+        "flags": [
+            "Other"
+        ]
+    },
+    "masterflat-ihu-39-20250308-01-glob-ss.jpg_20250310122426418546": {
+        "file_path": "/hatpi/ihu-39/masterflat-ihu-39-20250308-01-glob-ss.jpg",
+        "comment": "Maculae.",
+        "author": "Attila",
+        "timestamp": "2025-03-10 12:24:26",
+        "markup_true": "",
+        "flags": [
+            "Maculae"
+        ]
+    },
+    "masterflat-ihu-33-20250308-01-glob-ss.jpg_20250310122301491943": {
+        "comment": "New black hole.",
+        "author": "Attila",
+        "timestamp": "2025-03-10 12:23:01",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-33-20250308-01-glob-ss.jpg",
+        "markup_true": "\u270f\ufe0f",
+        "flags": [
+            "Other"
+        ]
+    },
+    "1-20250309_47_ihu_status.html_20250310105442368347": {
+        "file_path": "/hatpi/1-20250309/1-20250309_47_ihu_status.html",
+        "comment": "Wrong frame temperature.",
+        "author": "Attila",
+        "timestamp": "2025-03-10 10:54:42",
+        "markup_true": "",
+        "flags": []
+    },
+    "1-20250309_39_ihu_status.html_20250310105405517574": {
+        "file_path": "/hatpi/1-20250309/1-20250309_39_ihu_status.html",
+        "comment": "Wrong frame temperature.",
+        "author": "Attila",
+        "timestamp": "2025-03-10 10:54:05",
+        "markup_true": "",
+        "flags": []
+    },
+    "1-20241024_01_subframe_movie.mp4_20250306110751576974": {
+        "file_path": "/hatpi/ihu-01/1-20241024_01_subframe_movie.mp4",
+        "comment": ".",
+        "author": "Attila",
+        "timestamp": "2025-03-06 11:07:51",
+        "markup_true": "",
+        "flags": []
+    },
+    "masterflat-ihu-39-20250303-01-glob-ss.jpg_20250305084005092897": {
+        "comment": "Maculae",
+        "author": "Attila",
+        "timestamp": "2025-03-05 08:40:05",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-39-20250303-01-glob-ss.jpg",
+        "markup_true": "\u270f\ufe0f",
+        "flags": [
+            "Maculae"
+        ]
+    },
+    "masterdark-ihu-60-20250304-03_EXPTIME45.0_CCDTEMP-25.0.jpg_20250305083856794238": {
+        "file_path": "/hatpi/1-20250304/masterdark-ihu-60-20250304-03_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "comment": "USB readout issue",
+        "author": "Attila",
+        "timestamp": "2025-03-05 08:38:56",
+        "markup_true": "",
+        "flags": [
+            "Readout Issue"
+        ]
+    },
+    "masterdark-ihu-60-20250304-02_EXPTIME30.0_CCDTEMP-25.0.jpg_20250305083843288664": {
+        "file_path": "/hatpi/1-20250304/masterdark-ihu-60-20250304-02_EXPTIME30.0_CCDTEMP-25.0.jpg",
+        "comment": "USB readout issue",
+        "author": "Attila",
+        "timestamp": "2025-03-05 08:38:43",
+        "markup_true": "",
+        "flags": [
+            "Readout Issue"
+        ]
+    },
+    "1-20250221_63_calframe_movie.mp4_20250223002535925972": {
+        "file_path": "/hatpi/ihu-63/1-20250221_63_calframe_movie.mp4",
+        "comment": "Fireball cloud blown over by high atmosphere winds?",
+        "author": "Gaspar",
+        "timestamp": "2025-02-23 00:25:35",
+        "markup_true": "",
+        "flags": [
+            "Meteor"
+        ]
+    },
+    "masterflat-ihu-26-20250217-01-glob-ss.jpg_20250218081751202959": {
+        "file_path": "/hatpi/ihu-26/masterflat-ihu-26-20250217-01-glob-ss.jpg",
+        "comment": "Maculae",
+        "author": "Attila",
+        "timestamp": "2025-02-18 08:17:51",
+        "markup_true": ""
+    },
+    "masterflat-ihu-26-20250205-01-glob-ss.jpg_20250206091123053899": {
+        "file_path": "/hatpi/ihu-26/masterflat-ihu-26-20250205-01-glob-ss.jpg",
+        "comment": "Maculae appeared!",
+        "author": "Attila",
+        "timestamp": "2025-02-06 09:11:23",
+        "markup_true": ""
+    },
+    "masterflat-ihu-05-20250203-01-glob-ss.jpg_20250204095222847743": {
+        "comment": "Stars?",
+        "author": "Attila",
+        "timestamp": "2025-02-04 09:52:22",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-05-20250203-01-glob-ss.jpg",
+        "markup_true": "\u270f\ufe0f"
+    },
+    "masterflat-ihu-33-20250202-01-glob-ss.jpg_20250203105619110328": {
+        "file_path": "/hatpi/ihu-33/masterflat-ihu-33-20250202-01-glob-ss.jpg",
+        "comment": "More spots compared to previous flats. Maybe just illumination.",
+        "author": "Attila",
+        "timestamp": "2025-02-03 10:56:19",
+        "markup_true": ""
+    },
+    "1-20241208_15_calframe_movie.mp4_20241209231838470577": {
+        "comment": "Strong ghosting on field 271. Worth thinking about how to mask such star-ghosts.",
+        "timestamp": "2024-12-09 23:18:38",
+        "markup_true": "",
+        "file_path": "/hatpi/1-20241208/1-20241208_15_calframe_movie.mp4",
+        "author": "Gaspar"
+    },
+    "masterflat-ihu-37-20241021-01-glob-ss.jpg_20241025110215754944": {
+        "comment": "Probably stars.",
+        "timestamp": "2024-10-25 11:02:15",
+        "markup_true": "\u270f\ufe0f",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-37-20241021-01-glob-ss.jpg",
+        "author": "Attila"
+    },
+    "masterflat-ihu-53-20240822-01-glob-ss.jpg_20240823180421801435": {
+        "comment": "black bar on image",
+        "timestamp": "2024-08-23 18:04:21",
+        "markup_true": "\u270f\ufe0f",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-53-20240822-01-glob-ss.jpg",
+        "author": "Anthony"
+    },
+    "masterflat-ihu-28-20240725-01-glob-ss.jpg_20240726155754225489": {
+        "comment": "Is having the two averages on L vs R a problem?",
+        "timestamp": "2024-07-26 15:57:54",
+        "markup_true": "",
+        "file_path": "/hatpi/1-20240725/masterflat-ihu-28-20240725-01-glob-ss.jpg",
+        "author": "Gaspar"
+    },
+    "masterflat-ihu-08-20240725-01-glob-ss.jpg_20240726155658852428": {
+        "comment": "I wonder why do we have the concentric ring pattern in all ss flatfields. This is after globflat correction. d",
+        "timestamp": "2024-07-26 15:56:58",
+        "markup_true": "\u270f\ufe0f",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-08-20240725-01-glob-ss.jpg",
+        "author": "Gaspar"
+    },
+    "masterflat-ihu-32-20240723-02-glob-ss.jpg_20240725103004397891": {
+        "comment": "Amplifier issue",
+        "timestamp": "2024-07-25 10:30:04",
+        "markup_true": "",
+        "file_path": "/hatpi/1-20240723/masterflat-ihu-32-20240723-02-glob-ss.jpg",
+        "author": "Attila"
+    },
+    "masterflat-ihu-28-20240723-02-glob-ss.jpg_20240725102958347636": {
+        "comment": "Amplifier issue",
+        "timestamp": "2024-07-25 10:29:58",
+        "markup_true": "",
+        "file_path": "/hatpi/1-20240723/masterflat-ihu-28-20240723-02-glob-ss.jpg",
+        "author": "Attila"
+    },
+    "masterflat-ihu-11-20240723-02-glob-ss.jpg_20240725102853546952": {
+        "comment": "Points?",
+        "timestamp": "2024-07-25 10:28:53",
+        "markup_true": "\u270f\ufe0f",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-11-20240723-02-glob-ss.jpg",
+        "author": "Attila"
+    },
+    "masterflat-ihu-04-20240723-02-glob-ss.jpg_20240725102831531251": {
+        "comment": "Dark spot?",
+        "timestamp": "2024-07-25 10:28:31",
+        "markup_true": "",
+        "file_path": "/hatpi/1-20240723/masterflat-ihu-04-20240723-02-glob-ss.jpg",
+        "author": "Gaspar"
+    },
+    "masterflat-ihu-54-20240713-01-glob-ss.jpg_20240715064112073378": {
+        "comment": "Are these some spots starting to emerge?",
+        "timestamp": "2024-07-15 06:41:12",
+        "markup_true": "",
+        "file_path": "/hatpi/1-20240713/masterflat-ihu-54-20240713-01-glob-ss.jpg",
+        "author": "Geert Jan"
+    },
+    "masterflat-ihu-10-20240630-01-glob-ss.jpg_20240703151655120918": {
+        "comment": "are those stars?",
+        "timestamp": "2024-07-03 15:16:55",
+        "markup_true": "\u270f\ufe0f",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-10-20240630-01-glob-ss.jpg",
+        "author": "Attila"
+    },
+    "masterbias-ihu-23-20240624-01.jpg_20240625222154584848": {
+        "comment": "Interference noise. Check grounding. ",
+        "timestamp": "2024-06-25 22:21:54",
+        "markup_true": "",
+        "file_path": "/hatpi/1-20240624/masterbias-ihu-23-20240624-01.jpg",
+        "author": "Gaspar"
+    },
+    "masterflat-ihu-06-20240624-01-glob-ss.jpg_20240625222056707753": {
+        "comment": "This is an old feature. Also, testing Anthony's new developments. ",
+        "timestamp": "2024-06-25 22:20:56",
+        "markup_true": "\u270f\ufe0f",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-06-20240624-01-glob-ss.jpg",
+        "author": "Gaspar"
+    },
+    "masterglobflat-ihu-27-20240622-05-ss.jpg_20240624163328766378": {
+        "comment": "piggybacking Attila's comment - looks like residue from cleaning the CCD",
+        "timestamp": "2024-06-24 16:33:28",
+        "markup_true": "\u270f\ufe0f",
+        "file_path": "/hatpi/markup_images/masterglobflat-ihu-27-20240622-05-ss.jpg",
+        "author": "Anthony"
+    },
+    "masterglobflat-ihu-27-20240622-05-ss.jpg_20240624153455130357": {
+        "comment": "strange pattern.",
+        "timestamp": "2024-06-24 15:34:55",
+        "markup_true": "\u270f\ufe0f",
+        "file_path": "/hatpi/markup_images/masterglobflat-ihu-27-20240622-05-ss.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-53-20240623-02_EXPTIME45.0_CCDTEMP-25.0.jpg_20240624141527113835": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:15:27",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-53-20240623-02_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-53-20240623-01_EXPTIME30.0_CCDTEMP-25.0.jpg_20240624141517871123": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:15:17",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-53-20240623-01_EXPTIME30.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-41-20240623-02_EXPTIME45.0_CCDTEMP-25.0.jpg_20240624141442177168": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:14:42",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-41-20240623-02_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-40-20240623-02_EXPTIME45.0_CCDTEMP-25.0.jpg_20240624141435344700": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:14:35",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-40-20240623-02_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-40-20240623-01_EXPTIME30.0_CCDTEMP-25.0.jpg_20240624141426212208": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:14:26",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-40-20240623-01_EXPTIME30.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterbias-ihu-41-20240623-02.jpg_20240624141311176022": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:13:11",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterbias-ihu-41-20240623-02.jpg",
+        "author": "Attila"
+    },
+    "masterbias-ihu-40-20240623-02.jpg_20240624141305848605": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:13:05",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterbias-ihu-40-20240623-02.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-53-20240622-02_EXPTIME45.0_CCDTEMP-25.0.jpg_20240624141042241215": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:10:42",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-53-20240622-02_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-53-20240622-01_EXPTIME30.0_CCDTEMP-25.0.jpg_20240624141030454844": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:10:30",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-53-20240622-01_EXPTIME30.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-53-20240622-01_EXPTIME1.0_CCDTEMP-20.0.jpg_20240624141021253011": {
+        "comment": "Is there something wrong with the readout?\n",
+        "timestamp": "2024-06-24 14:10:21",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-53-20240622-01_EXPTIME1.0_CCDTEMP-20.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-41-20240622-02_EXPTIME45.0_CCDTEMP-25.0.jpg_20240624140959488995": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:09:59",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-41-20240622-02_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-41-20240622-01_EXPTIME30.0_CCDTEMP-25.0.jpg_20240624140953311641": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:09:53",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-41-20240622-01_EXPTIME30.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-41-20240622-01_EXPTIME1.0_CCDTEMP-20.0.jpg_20240624140948120207": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:09:48",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-41-20240622-01_EXPTIME1.0_CCDTEMP-20.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-40-20240622-02_EXPTIME45.0_CCDTEMP-25.0.jpg_20240624140937176359": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:09:37",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-40-20240622-02_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-40-20240622-02_EXPTIME3.0_CCDTEMP-20.0.jpg_20240624140929045717": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:09:29",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-40-20240622-02_EXPTIME3.0_CCDTEMP-20.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-40-20240622-01_EXPTIME30.0_CCDTEMP-25.0.jpg_20240624140751260410": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:07:51",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-40-20240622-01_EXPTIME30.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-40-20240622-01_EXPTIME1.0_CCDTEMP-20.0.jpg_20240624140742503080": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:07:42",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-40-20240622-01_EXPTIME1.0_CCDTEMP-20.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-25-20240622-02_EXPTIME45.0_CCDTEMP-25.0.jpg_20240624140714195211": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:07:14",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-25-20240622-02_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-25-20240622-01_EXPTIME30.0_CCDTEMP-25.0.jpg_20240624140651731387": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:06:51",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-25-20240622-01_EXPTIME30.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-23-20240622-02_EXPTIME45.0_CCDTEMP-25.0.jpg_20240624140637924805": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:06:37",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-23-20240622-02_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-23-20240622-02_EXPTIME3.0_CCDTEMP-20.0.jpg_20240624140629349550": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:06:29",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-23-20240622-02_EXPTIME3.0_CCDTEMP-20.0.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-23-20240622-01_EXPTIME30.0_CCDTEMP-25.0.jpg_20240624140621230697": {
+        "comment": "bad dark.",
+        "timestamp": "2024-06-24 14:06:21",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-23-20240622-01_EXPTIME30.0_CCDTEMP-25.0.jpg",
+        "author": "Attila"
+    },
+    "masterbias-ihu-41-20240622-01.jpg_20240624140456099399": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:04:56",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterbias-ihu-41-20240622-01.jpg",
+        "author": "Attila"
+    },
+    "masterbias-ihu-40-20240622-01.jpg_20240624140446053469": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 14:04:46",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterbias-ihu-40-20240622-01.jpg",
+        "author": "Attila"
+    },
+    "masterglobflat-ihu-33-20240621-08-ss.jpg_20240624140243791547": {
+        "comment": "Frame quality decreased.",
+        "timestamp": "2024-06-24 14:02:43",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterglobflat-ihu-33-20240621-08-ss.jpg",
+        "author": "Attila"
+    },
+    "masterdark-ihu-40-20240620-02_EXPTIME1.0_CCDTEMP-20.0.jpg_20240624135923212261": {
+        "comment": "Is there something wrong with the readout?",
+        "timestamp": "2024-06-24 13:59:23",
+        "markup_true": null,
+        "file_path": "/hatpi/markup_images/masterdark-ihu-40-20240620-02_EXPTIME1.0_CCDTEMP-20.0.jpg",
+        "author": "Attila"
+    },
+    "masterglobflat-ihu-18-20240622-04-ss.jpg_20240624124029255824": {
+        "comment": "star shaped artifact",
+        "timestamp": "2024-06-24 12:40:29",
+        "markup_true": "\u270f\ufe0f",
+        "file_path": "/hatpi/markup_images/masterglobflat-ihu-18-20240622-04-ss.jpg",
+        "author": "Gaspar"
+    },
+    "masterflat-ihu-18-20240607-01-glob-ss.jpg_20240611082932484607": {
+        "comment": "Flats are not only cloudy, but also have some residual stars. Something is not OK",
+        "timestamp": "2024-06-11 08:29:32",
+        "file_path": "/hatpi/1-20240607/masterflat-ihu-18-20240607-01-glob-ss.jpg",
+        "author": "Gaspar"
+    },
+    "masterdark-ihu-12-20240529-01_EXPTIME45.0_CCDTEMP-25.0.jpg_20240607124507521618": {
+        "comment": "Has this dark pattern been the same for a while? Why is it so different from the other CCDs? ",
+        "timestamp": "2024-06-07 12:45:07",
+        "file_path": "/hatpi/1-20240529/masterdark-ihu-12-20240529-01_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "author": "Gaspar"
+    },
+    "masterdark-ihu-36-20240529-01_EXPTIME45.0_CCDTEMP-25.0.jpg_20240607124421403852": {
+        "comment": "Have we ever figured out why are there ring-like patterns on the darks. Only some of the darks exhibit these. Are the conditions truly dark when taking these?",
+        "timestamp": "2024-06-07 12:44:21",
+        "file_path": "/hatpi/1-20240529/masterdark-ihu-36-20240529-01_EXPTIME45.0_CCDTEMP-25.0.jpg",
+        "author": "Gaspar"
+    },
+    "masterflat-ihu-06-20240518-01-glob-ss.jpg_20240527130837988759": {
+        "comment": "GB: Strange sharp sharktooth like white feature. TODO: check other dates for the same IHU to see evolution",
+        "timestamp": "2024-05-27 13:08:37",
+        "file_path": "/hatpi/1-20240518/masterflat-ihu-06-20240518-01-glob-ss.jpg",
+        "author": "Gaspar"
+    },
+    "masterflat-ihu-25-20251203-01-glob-ss.jpg_20251209143047017280": {
+        "comment": "Stars?",
+        "author": "Attila",
+        "timestamp": "2025-12-09 14:30:47",
+        "file_path": "/hatpi/markup_images/masterflat-ihu-25-20251203-01-glob-ss.jpg",
+        "markup_true": "\u270f\ufe0f",
+        "flags": []
+    }
+}

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, send_from_directory, send_file, request, jsonify, make_response
+from flask import Flask, render_template, send_from_directory, send_file, request, jsonify, make_response, url_for
 import os
 import datetime
 import json
@@ -7,11 +7,12 @@ import time
 import re
 import threading
 import base64
+import hashlib
 from collections import OrderedDict
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 BASE_DIR = '/nfs/hatops/ar0/hatpi-website'
-EXCLUDE_FOLDERS = set(['fix_json', 'download_sandbox' ,'static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images', 'SUB', 'RED', 'data', 'calframe_test'])
+EXCLUDE_FOLDERS = set(['fix_json', 'download_sandbox' ,'static', 'templates', 'images', '.git', '__pycache__', 'scripts', 'movies', 'logs', 'markup_images', 'SUB', 'RED', 'data', 'calframe_test', 'daily', 'systemd'])
 
 for folder in os.listdir(BASE_DIR):
     if folder.startswith('ihu'):
@@ -22,6 +23,56 @@ SAVE_PATH = '/nfs/hatops/ar0/hatpi-website/markup_images'
 KEYBOARD_FLAGS_FILE = '/nfs/hatops/ar0/hatpi-website/keyboard_flags.json'
 
 logging.basicConfig(level=logging.DEBUG)
+
+# Generate cache-busting version at startup
+def generate_cache_version():
+    """Generate a unique version identifier for cache busting"""
+    timestamp = str(int(time.time()))
+    # Use a combination of timestamp and a hash of the main script
+    try:
+        with open(__file__, 'rb') as f:
+            script_hash = hashlib.md5(f.read()).hexdigest()[:8]
+    except:
+        script_hash = hashlib.md5(timestamp.encode()).hexdigest()[:8]
+    return f"{timestamp}_{script_hash}"
+
+# Global cache version - generated once at startup
+CACHE_VERSION = generate_cache_version()
+logging.info(f"Cache-busting version generated: {CACHE_VERSION}")
+
+# Template function to add version to static URLs
+@app.template_global()
+def versioned_url_for(endpoint, **values):
+    """Generate URLs with cache-busting version parameter"""
+    if endpoint == 'static':
+        filename = values.get('filename', '')
+        # Check if it's a CSS or JS file that needs versioning
+        if filename.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.ico')):
+            return f"/hatpi/static/{filename}?v={CACHE_VERSION}"
+        else:
+            return f"/hatpi/static/{filename}"
+    # For non-static endpoints, try to use url_for but fallback gracefully
+    try:
+        return url_for(endpoint, **values)
+    except:
+        # If url_for fails, return a simple string (shouldn't happen for static files)
+        return f"/{endpoint}"
+
+# Make cache version available to all templates
+@app.context_processor
+def inject_cache_version():
+    """Make cache version available in all templates"""
+    return {'cache_version': CACHE_VERSION}
+
+# Custom static file route - must be defined early to avoid conflicts with catch-all routes
+@app.route('/hatpi/static/<path:filename>')
+def custom_static(filename):
+    """Serve static files with proper cache control"""
+    try:
+        return send_from_directory(app.static_folder, filename)
+    except Exception as e:
+        app.logger.error(f"Error serving static file {filename}: {str(e)}")
+        return "File not found", 404
 
 class LRUCache:
     def __init__(self, capacity=128):
@@ -48,9 +99,21 @@ class LRUCache:
 cache = LRUCache()
 
 def get_cached_dir_list(base_dir):
-    cached_result = cache.get(base_dir)
-    if cached_result:
-        return cached_result
+    """
+    Return the list of (folder_name, creation_date_str) for BASE_DIR.
+    Uses a short TTL so new date folders appear without restarting the app.
+    """
+    ROOT_DIR_CACHE_TTL_SECONDS = 15
+
+    cached_entry = cache.get(base_dir)  # cached_entry := (cached_at_epoch, folders)
+    if cached_entry:
+        try:
+            cached_at, folders = cached_entry
+            if (time.time() - cached_at) < ROOT_DIR_CACHE_TTL_SECONDS:
+                return folders
+        except Exception:
+            # Fall through and rebuild cache on any unexpected structure
+            pass
 
     folders = []
     for folder in os.listdir(base_dir):
@@ -59,7 +122,7 @@ def get_cached_dir_list(base_dir):
             creation_date = get_creation_date(folder_path)
             folders.append((folder, creation_date))
     folders.sort(key=lambda x: x[0], reverse=True)
-    cache.put(base_dir, folders)
+    cache.put(base_dir, (time.time(), folders))
     return folders
 
 def format_folder_name(value):
@@ -69,8 +132,67 @@ def format_folder_name(value):
     return value
 
 def format_filename(value):
-    if value.endswith('.jpg'):
-        parts = value.split('-')
+    # Check if this is a RED/SUB file path
+    if '/RED/' in value or '/SUB/' in value:
+        # Parse RED/SUB file path: e.g., "/hatpi/RED/1-20250216/ihu50/1-487919_50-red-bin4.jpg"
+        path_parts = value.split('/')
+        filename = path_parts[-1]  # e.g., "1-487919_50-red-bin4.jpg"
+        
+        # Extract date from folder path (e.g., "1-20250216" -> "2025-02-16")
+        date_folder = None
+        for part in path_parts:
+            if part.startswith('1-') and len(part) == 10:
+                date_folder = part
+                break
+        
+        if date_folder:
+            date_part = date_folder[2:6] + '-' + date_folder[6:8] + '-' + date_folder[8:10]
+        else:
+            date_part = 'unknown-date'
+        
+        # Determine type (reduction/subtraction)
+        if '-red-' in filename.lower():
+            type_part = 'reduction'
+        elif '-sub-' in filename.lower():
+            type_part = 'subtraction'
+        else:
+            type_part = 'unknown'
+        
+        # Extract subtype (e.g., "twilight", "object", etc.)
+        subtype_match = re.search(r'-(?:red|sub)-([^-]+?)-bin', filename, re.IGNORECASE)
+        if subtype_match:
+            subtype = subtype_match.group(1).capitalize()
+            type_part = type_part + ' | ' + subtype
+        
+        # Extract IHU from folder path (e.g., "ihu50" -> "IHU-50")
+        ihu_folder = None
+        for part in path_parts:
+            if part.startswith('ihu') and len(part) >= 4:
+                ihu_folder = part
+                break
+        
+        if ihu_folder:
+            ihu_num = ihu_folder[3:]  # Remove "ihu" prefix
+            ihu_part = ihu_num.zfill(2)  # Pad with zero if needed
+        else:
+            ihu_part = 'unknown'
+        
+        # Extract frame number
+        frame_match = re.search(r'1-(\d+)_', filename)
+        if frame_match:
+            frame_part = 'frame: ' + frame_match.group(1)
+            return "%s | %s | IHU-%s | %s" % (date_part, type_part, ihu_part, frame_part)
+        else:
+            return "%s | %s | IHU-%s" % (date_part, type_part, ihu_part)
+    
+    # Original logic for calibration files (extract filename from path if needed)
+    if '/' in value:
+        filename = value.split('/')[-1]
+    else:
+        filename = value
+    
+    if filename.endswith('.jpg'):
+        parts = filename.split('-')
         date_part = parts[3][:4] + '-' + parts[3][4:6] + '-' + parts[3][6:8]
 
         if 'bias' in parts[0]:
@@ -88,55 +210,55 @@ def format_filename(value):
         else:
             type_part = 'unknown'
 
-        ihu_match = re.search(r'ihu-(\d+)', value)
+        ihu_match = re.search(r'ihu-(\d+)', filename)
         ihu_part = ihu_match.group(1) if ihu_match else 'IHU-'
 
-    elif value.endswith('.html'):
-        parts = value.split('_')
+    elif filename.endswith('.html'):
+        parts = filename.split('_')
         date_part = parts[0][2:6] + '-' + parts[0][6:8] + '-' + parts[0][8:10]
 
-        if 'aper_phot_quality' in value:
+        if 'aper_phot_quality' in filename:
             type_part = 'aper phot quality'
-        elif 'astrometry_sip_quality' in value:
+        elif 'astrometry_sip_quality' in filename:
             type_part = 'astrometry SIP quality'
-        elif 'astrometry_wcs_quality' in value:
+        elif 'astrometry_wcs_quality' in filename:
             type_part = 'astrometry WCS quality'
-        elif 'calframe_quality' in value:
+        elif 'calframe_quality' in filename:
             type_part = 'calframe quality'
-        elif 'ihu_status' in value:
+        elif 'ihu_status' in filename:
             type_part = 'IHU status'
-        elif 'psf_sources_model' in value:
+        elif 'psf_sources_model' in filename:
             type_part = 'PSF sources model'
-        elif 'subframe_quality' in value:
+        elif 'subframe_quality' in filename:
             type_part = 'subframe quality'
-        elif 'telescope_status' in value:
+        elif 'telescope_status' in filename:
             type_part = 'Telescope Status'
         else:
             type_part = 'unknown'
 
-        ihu_match = re.search(r'_(\d+)_', value)
+        ihu_match = re.search(r'_(\d+)_', filename)
         ihu_part = ihu_match.group(1) if ihu_match else 'IHU-'
 
         # Specific check for Telescope Status type
         if type_part == 'Telescope Status':
             return "%s | %s" % (date_part, type_part)
 
-    elif value.endswith('.mp4'):
-        parts = value.split('_')
+    elif filename.endswith('.mp4'):
+        parts = filename.split('_')
         date_part = parts[0][2:6] + '-' + parts[0][6:8] + '-' + parts[0][8:10]
 
-        if 'calframe_movie' in value:
+        if 'calframe_movie' in filename:
             type_part = 'calframe'
-        elif 'calframe_stamps_movie' in value:
+        elif 'calframe_stamps_movie' in filename:
             type_part = 'calframe stamps'
-        elif 'subframe_stamps_movie' in value:
+        elif 'subframe_stamps_movie' in filename:
             type_part = 'subframe stamps'
-        elif 'subframe_movie' in value:
+        elif 'subframe_movie' in filename:
             type_part = 'subframe'
         else:
             type_part = 'unknown'
 
-        ihu_match = re.search(r'_(\d+)_', value)
+        ihu_match = re.search(r'_(\d+)_', filename)
         ihu_part = ihu_match.group(1) if ihu_match else 'IHU-'
 
     else:
@@ -194,8 +316,9 @@ def home():
 
 @app.route('/<folder_name>/')
 def folder(folder_name):
-    folder_path = os.path.join(BASE_DIR, folder_name)
-    images, html_files, movies = get_cached_files(folder_path)
+    # Avoid expensive full directory scans at render time; the page JS will
+    # load items via /api/folder with pagination.
+    images, html_files, movies = [], [], []
 
     keyboard_flags = load_keyboard_flags()
     flagged_for_folder = []
@@ -224,7 +347,64 @@ def folder(folder_name):
 def api_folder(folder_name):
     folder_path = os.path.join(BASE_DIR, folder_name)
     images, html_files, movies = get_cached_files(folder_path)
-    return jsonify({'images': images, 'html_files': html_files, 'movies': movies})
+
+    # Backward-compatible default: if no 'limit' provided, return full arrays
+    limit_raw = request.args.get('limit')
+    if not limit_raw:
+        return jsonify({'images': images, 'html_files': html_files, 'movies': movies})
+
+    # Pagination mode
+    try:
+        limit = max(1, min(1000, int(limit_raw)))
+    except ValueError:
+        limit = 200
+
+    # Optional single-category fetch for lazy loading
+    category = request.args.get('category')  # 'images' | 'html_files' | 'movies'
+    if category:
+        offset = int(request.args.get('offset', 0))
+        data_map = {'images': images, 'html_files': html_files, 'movies': movies}
+        items = data_map.get(category, [])
+        sliced = items[offset: offset + limit]
+        has_more = (offset + limit) < len(items)
+        next_offset = offset + len(sliced)
+        return jsonify({
+            'category': category,
+            'items': sliced,
+            'has_more': has_more,
+            'next_offset': next_offset,
+            'total': len(items),
+        })
+
+    # Multi-category initial page
+    offset_images = int(request.args.get('offset_images', 0))
+    offset_html   = int(request.args.get('offset_html', 0))
+    offset_movies = int(request.args.get('offset_movies', 0))
+
+    images_slice = images[offset_images: offset_images + limit]
+    html_slice   = html_files[offset_html: offset_html + limit]
+    movies_slice = movies[offset_movies: offset_movies + limit]
+
+    return jsonify({
+        'images': images_slice,
+        'html_files': html_slice,
+        'movies': movies_slice,
+        'has_more': {
+            'images': (offset_images + limit) < len(images),
+            'html_files': (offset_html + limit) < len(html_files),
+            'movies': (offset_movies + limit) < len(movies),
+        },
+        'next_offsets': {
+            'images': offset_images + len(images_slice),
+            'html_files': offset_html + len(html_slice),
+            'movies': offset_movies + len(movies_slice),
+        },
+        'totals': {
+            'images': len(images),
+            'html_files': len(html_files),
+            'movies': len(movies),
+        }
+    })
 
 def is_date_based_folder(folder_name):
     return re.match(r'\d{4}-\d{2}-\d{2}', folder_name) is not None
@@ -277,13 +457,29 @@ def get_cached_files(folder_path: str):
         logging.error("get_cached_files – folder does not exist: %s", folder_path)
         return [], [], []
 
-    cached_entry = cache.get(folder_path)  # cached_entry := (mtime, (img, html, mov))
-    if cached_entry and cached_entry[0] == folder_mtime:
-        logging.info(
-            "get_cached_files – served from cache in %.3f s",
-            time.time() - start_time,
-        )
-        return cached_entry[1]
+    # Cache entry layout: (cached_mtime, (images, html_files, movies), cached_at_epoch)
+    cached_entry = cache.get(folder_path)
+    if cached_entry:
+        try:
+            cached_mtime, cached_data, cached_at = cached_entry
+            # Serve if mtime unchanged
+            if cached_mtime == folder_mtime:
+                logging.info(
+                    "get_cached_files – served from cache in %.3f s",
+                    time.time() - start_time,
+                )
+                return cached_data
+            # Short TTL fallback to reduce rescans on frequently updated dirs (e.g., IHU)
+            PER_FOLDER_CACHE_TTL_SECONDS = 15
+            if (time.time() - cached_at) < PER_FOLDER_CACHE_TTL_SECONDS:
+                logging.info(
+                    "get_cached_files – served slightly stale (TTL) in %.3f s",
+                    time.time() - start_time,
+                )
+                return cached_data
+        except Exception:
+            # Ignore malformed cache entry and rebuild
+            pass
 
     # ---- 1. Decide which filename-parsing rules apply -----------------------
     is_ihu_folder   = "/nfs/hatops/ar0/hatpi-website/ihu-" in folder_path
@@ -350,7 +546,7 @@ def get_cached_files(folder_path: str):
     movies      = [(f, s) for (f, _, s) in movies_tmp]
 
     # ---- 5. Cache & return --------------------------------------------------
-    cache.put(folder_path, (folder_mtime, (images, html_files, movies)))
+    cache.put(folder_path, (folder_mtime, (images, html_files, movies), time.time()))
 
     logging.info(
         "get_cached_files – scanned %s in %.3f s – items: %d jpg, %d html, %d mp4",
@@ -598,6 +794,80 @@ def serve_lcplot(filepath):
     # If it's a file, serve it
     return send_file(file_path)
 
+
+@app.route("/skyflats_runtimes")
+@app.route("/hatpi/skyflats_runtimes")
+def skyflats_runtimes():
+    """Serve the Daily Skyflats & Task Runtimes page"""
+    daily_dir = "/nfs/hatops/ar0/hatpi-website/daily"
+    
+    skyflat_files = []
+    runtime_files = []
+    
+    try:
+        # Get all files in the daily directory
+        for filename in sorted(os.listdir(daily_dir)):
+            if filename.endswith('.html'):
+                file_path = os.path.join(daily_dir, filename)
+                mod_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                formatted_time = mod_time.strftime('%Y-%m-%d %H:%M:%S')
+                
+                if filename.startswith('skyflat_metrics_ihuid_'):
+                    # Extract IHU ID from filename
+                    ihu_match = re.search(r'skyflat_metrics_ihuid_(\d+)\.html', filename)
+                    if ihu_match:
+                        ihu_id = ihu_match.group(1)
+                        display_name = f"IHU-{ihu_id.zfill(2)} Skyflat Metrics"
+                    else:
+                        display_name = filename.replace('.html', '').replace('_', ' ').title()
+                    
+                    skyflat_files.append({
+                        'name': filename,
+                        'display_name': display_name,
+                        'modified': formatted_time
+                    })
+                
+                elif filename.startswith('task_timings_'):
+                    # Extract date from filename
+                    date_match = re.search(r'task_timings_(\d{8})\.html', filename)
+                    if date_match:
+                        date_str = date_match.group(1)
+                        # Format as YYYY-MM-DD
+                        formatted_date = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}"
+                        display_name = f"Task Runtimes - {formatted_date}"
+                    else:
+                        display_name = filename.replace('.html', '').replace('_', ' ').title()
+                    
+                    runtime_files.append({
+                        'name': filename,
+                        'display_name': display_name,
+                        'modified': formatted_time
+                    })
+        
+        # Sort files - skyflats by IHU ID (ascending), runtimes by date (descending)
+        skyflat_files.sort(key=lambda x: int(re.search(r'(\d+)', x['name']).group(1)) if re.search(r'(\d+)', x['name']) else 0)
+        runtime_files.sort(key=lambda x: x['name'], reverse=True)
+        
+    except Exception as e:
+        app.logger.error(f"Error reading daily directory: {str(e)}")
+    
+    return render_template("skyflats_runtimes.html", 
+                         skyflat_files=skyflat_files, 
+                         runtime_files=runtime_files)
+
+
+@app.route('/hatpi/daily/<filename>')
+def serve_daily_file(filename):
+    """Serve files from the daily directory"""
+    daily_dir = "/nfs/hatops/ar0/hatpi-website/daily"
+    file_path = os.path.join(daily_dir, filename)
+    
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return send_file(file_path)
+    else:
+        return "File not found", 404
+
+
 @app.route('/hatpi/comments.json')
 def get_comments():
     try:
@@ -613,6 +883,23 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    
+    # Add cache control headers for static files
+    if request.endpoint == 'custom_static' or request.endpoint == 'static':
+        # Check if it's a versioned file (has 'v=' parameter) 
+        query_string = request.query_string.decode()
+        if 'v=' in query_string and CACHE_VERSION in query_string:
+            # Versioned files - cache for 1 year since they'll change URL when updated
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+            # Remove no-cache headers if they exist
+            response.headers.pop('Pragma', None)
+            response.headers.pop('Expires', None)
+        else:
+            # Non-versioned files - no cache to ensure fresh content
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+    
     return response
 
 @app.route('/api/save_markups', methods=['POST'])
@@ -658,6 +945,16 @@ def save_markups():
 
 @app.route('/<folder_name>/<filename>')
 def file(folder_name, filename):
+    app.logger.info(f"Catch-all route called with folder_name='{folder_name}', filename='{filename}'")
+    
+    # Handle static file requests that got caught by this catch-all route
+    if folder_name == 'hatpi' and filename.startswith('static/'):
+        app.logger.info(f"Detected static file request, redirecting to custom_static")
+        # Extract the actual filename from "static/filename"
+        static_filename = filename[7:]  # Remove "static/" prefix
+        app.logger.info(f"Static filename: '{static_filename}'")
+        return custom_static(static_filename)
+    
     folder_path = os.path.join(BASE_DIR, folder_name)
     file_path = os.path.join(folder_path, filename)
 
@@ -673,8 +970,8 @@ def file(folder_name, filename):
 @app.route('/ihu/ihu-<cell_number>')
 def ihu_cell(cell_number):
     folder_name = f'ihu-{cell_number}'
-    folder_path = os.path.join(BASE_DIR, folder_name)
-    images, html_files, movies = get_cached_files(folder_path)
+    # Avoid expensive full directory scans at render time; page JS will load via /api/folder
+    images, html_files, movies = [], [], []
 
     # Load keyboard flags
     keyboard_flags = load_keyboard_flags()

@@ -32,26 +32,176 @@ const CALIBRATION_BUTTONS_HTML = `
 `;
 
 /**
- * Load the default calibration data for the current folder.
+ * Load folder contents with server-side pagination and set up lazy loading.
+ * Visible behavior remains the same; we just fetch in chunks for speed.
  */
 function loadFolder(folderName) {
-    fetch(`/hatpi/api/folder/${folderName}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
+    // Initialize paging state
+    window.folderPaging = {
+        folderName,
+        limit: 200,
+        offsets: { images: 0, html_files: 0, movies: 0 },
+        hasMore: { images: true, html_files: true, movies: true },
+        loading: { images: false, html_files: false, movies: false }
+    };
+
+    // Initial fetch: request first page for all categories
+    const url = new URL(`/hatpi/api/folder/${folderName}`, window.location.origin);
+    url.searchParams.set('limit', String(window.folderPaging.limit));
+    fetch(url.toString())
+        .then(r => r.json())
         .then(data => {
-            const images = data.images;
-            const htmlFiles = data.html_files;
-            const movies = data.movies;
+            const images = data.images || [];
+            const htmlFiles = data.html_files || [];
+            const movies = data.movies || [];
             displayFolderContents(images, htmlFiles, movies, folderName);
+
+            // Update paging state
+            if (data.next_offsets) {
+                window.folderPaging.offsets = data.next_offsets;
+            } else {
+                window.folderPaging.offsets = {
+                    images: images.length,
+                    html_files: htmlFiles.length,
+                    movies: movies.length
+                };
+            }
+            if (data.has_more) {
+                window.folderPaging.hasMore = data.has_more;
+            } else {
+                window.folderPaging.hasMore = {
+                    images: false, html_files: false, movies: false
+                };
+            }
+
+            // Apply default filters on first page
             filterImages('all');
             filterHtmlFiles('all');
             filterMovies('all');
+
+            // Set up intersection observers for lazy loading per tab
+            setupLazyLoadObserver('images', '.images');
+            setupLazyLoadObserver('html_files', '.plot-list');
+            setupLazyLoadObserver('movies', '.movies');
         })
-        .catch(error => console.error('Error loading folder:', error));
+        .catch(e => console.error('Error loading folder (paged):', e));
+}
+
+/**
+ * Append a page of items into a specific category container.
+ */
+function appendItems(category, items, folderName) {
+    let containerSelector;
+    if (category === 'images') containerSelector = '.images';
+    else if (category === 'html_files') containerSelector = '.plot-list';
+    else if (category === 'movies') containerSelector = '.movies';
+    else return;
+
+    const cont = document.querySelector(containerSelector);
+    if (!cont) return;
+
+    items.forEach(tuple => {
+        const fileName = tuple[0];
+        const fileDate = tuple[1];
+        const lines = formatTitle(fileName);
+        const prettyName = lines.length ? lines.join(' | ') : fileName;
+
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.setAttribute('data-filename', fileName);
+
+        if (category === 'html_files') {
+            div.innerHTML = `
+                <div class="file-name">
+                    <a href="#" onclick="loadPlot('/hatpi/${folderName}/${fileName}'); return false;">
+                        ${prettyName}
+                    </a>
+                </div>
+                <div class="file-date">${fileDate}</div>
+            `;
+        } else {
+            div.innerHTML = `
+                <div class="file-name">
+                    <a href="#" onclick="openGallery('/hatpi/${folderName}/${fileName}'); return false;">
+                        ${prettyName}
+                    </a>
+                </div>
+                <div class="file-date">${fileDate}</div>
+            `;
+        }
+        cont.appendChild(div);
+    });
+
+    // Re-apply zebra striping
+    applyAlternatingColors(containerSelector);
+}
+
+/**
+ * Observe the bottom of a category container and auto-load more when near end.
+ */
+function setupLazyLoadObserver(category, containerSelector) {
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
+
+    // Create a sentinel at the end
+    const sentinel = document.createElement('div');
+    sentinel.className = 'lazy-sentinel';
+    sentinel.style.height = '1px';
+    sentinel.style.width = '100%';
+    container.appendChild(sentinel);
+
+    const io = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                loadMore(category);
+            }
+        });
+    }, {
+        root: document.querySelector('.images-list-container') || null,
+        rootMargin: '200px',
+        threshold: 0.01
+    });
+    io.observe(sentinel);
+}
+
+/**
+ * Load the next page for a given category.
+ */
+function loadMore(category) {
+    const state = window.folderPaging;
+    if (!state || !state.hasMore[category] || state.loading[category]) return;
+    state.loading[category] = true;
+
+    const url = new URL(`/hatpi/api/folder/${state.folderName}`, window.location.origin);
+    url.searchParams.set('limit', String(state.limit));
+    url.searchParams.set('category', category);
+    url.searchParams.set('offset', String(state.offsets[category] || 0));
+
+    fetch(url.toString())
+        .then(r => r.json())
+        .then(data => {
+            const items = data.items || [];
+            appendItems(category, items, state.folderName);
+            state.offsets[category] = data.next_offset || (state.offsets[category] + items.length);
+            state.hasMore[category] = !!data.has_more;
+
+            // Re-apply current filters on the updated list
+            if (category === 'images') {
+                const active = document.querySelector('#image-filters .filter-button.active');
+                active ? filterImages(active.textContent.trim().toLowerCase().replace(' ', '-')) : filterImages('all');
+            } else if (category === 'html_files') {
+                const active = document.querySelector('#html-filters .filter-button.active');
+                active ? filterHtmlFiles(active.textContent.trim().toLowerCase().replace(' ', '_')) : filterHtmlFiles('all');
+            } else if (category === 'movies') {
+                const active = document.querySelector('#movie-filters .filter-button.active');
+                const key = active ? active.textContent.trim().toLowerCase().replace(' ', '-') : 'all';
+                filterMovies(key);
+            }
+        })
+        .catch(e => console.error(`Error loading more ${category}:`, e))
+        .finally(() => {
+            state.loading[category] = false;
+        });
 }
 
 /**
@@ -137,7 +287,7 @@ function formatDateFolderName(folderName) {
 function listRedSubDatesForIhu(redOrSub) {
     const imagesContainer = document.querySelector('.images-list .images');
     imagesContainer.innerHTML = '';
-    removeBackButton(); // Remove any existing “⟵ Back” link
+    removeBackButton(); // Remove any existing "⟵ Back" link
 
     // Fetch subfolders from the top-level RED or SUB directory
     const subfoldersApi = `/hatpi/api/subfolders/${redOrSub}`;
@@ -783,6 +933,13 @@ let magnifierActive = false;
 let drawingActive = false;
 let drawingOccurred = false; // Flag to track drawing on the canvas
 
+// New persistent zoom variables
+let persistentZoomActive = false;      // Flag for navigation with zoom
+let storedZoomFocalX = 0.5;           // Zoom center as % of image width  
+let storedZoomFocalY = 0.5;           // Zoom center as % of image height
+let lastMouseX = 0;                   // Last mouse position for restoration
+let lastMouseY = 0;
+
 function navigateGallery(direction) {
     currentGalleryIndex = (currentGalleryIndex + direction + currentGalleryFiles.length) % currentGalleryFiles.length;
     let nextFile = null;
@@ -820,7 +977,10 @@ const KEY_TO_FLAG = {
 }
 
 const handleKeyDown = (event) => {
-    if (currentGalleryIndex === -1 || !currentGalleryFiles.length) return;
+    const isRedSubSwitchKey = (event.key === 'ArrowUp' || event.key === 'ArrowDown');
+    // Allow RED/SUB switching (Up/Down) even when currentGalleryIndex is -1
+    // which happens during RED/SUB switch mode. For other keys, require a valid index.
+    if (!isRedSubSwitchKey && (currentGalleryIndex === -1 || !currentGalleryFiles.length)) return;
 
     // If user is typing in the comment box or any input/textarea, skip
     const activeEl = document.activeElement;
@@ -830,18 +990,48 @@ const handleKeyDown = (event) => {
             (activeEl.tagName.toLowerCase() === 'input' && activeEl.type !== 'checkbox'));
 
     if (isTypingInInput) {
-        // If they’re typing in the comment box, do not toggle flags
+        // If they're typing in the comment box, do not toggle flags
         return;
     }
 
-
     if (event.key === 'ArrowLeft') {
+        // Store zoom state before navigation if zoom is active
+        if (magnifierActive) {
+            persistentZoomActive = true;
+            // Store current mouse position for restoration
+            lastMouseX = event.clientX || lastMouseX;
+            lastMouseY = event.clientY || lastMouseY;
+        }
         navigateGallery(-1);
     } else if (event.key === 'ArrowRight') {
+        // Store zoom state before navigation if zoom is active
+        if (magnifierActive) {
+            persistentZoomActive = true;
+            // Store current mouse position for restoration
+            lastMouseX = event.clientX || lastMouseX;
+            lastMouseY = event.clientY || lastMouseY;
+        }
         navigateGallery(1);
+    } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+        // Switch between corresponding RED/SUB files
+        // Only work if we have a current file path and gallery is open
+        if (window.currentFilePath && galleryOverlay) {
+            switchToCorrespondingFile();
+        }
+        event.preventDefault(); // Prevent page scrolling
     } else if (event.key === 'z') {
-        magnifierActive = true;
-        document.body.classList.add('hide-cursor');
+        // Toggle zoom on/off
+        magnifierActive = !magnifierActive;
+        if (magnifierActive) {
+            document.body.classList.add('hide-cursor');
+        } else {
+            document.body.classList.remove('hide-cursor');
+            const magnifier = document.getElementById('magnifier');
+            if (magnifier) {
+                magnifier.style.display = 'none';
+            }
+            persistentZoomActive = false; // Turn off persistent zoom when exiting zoom mode
+        }
     } else if (event.key == 'd') {
         drawingActive = true;
         document.body.style.cursor = 'crosshair';
@@ -852,14 +1042,7 @@ const handleKeyDown = (event) => {
 };
 
 const handleKeyUp = (event) => {
-    if (event.key === 'z') {
-        magnifierActive = false;
-        document.body.classList.remove('hide-cursor');
-        const magnifier = document.getElementById('magnifier');
-        if (magnifier) {
-            magnifier.style.display = 'none';
-        }
-    } else if (event.key == 'd') {
+    if (event.key == 'd') {
         drawingActive = false;
         document.body.style.cursor = 'default';
     }
@@ -878,30 +1061,109 @@ function createMagnifier() {
 
 function showMagnifier(event) {
     const magnifier = document.getElementById('magnifier');
-    if (magnifierActive && magnifier) {
+    if (magnifierActive) {
+        // Create magnifier if it doesn't exist
+        if (!magnifier) {
+            createMagnifier();
+        }
+        const magnifierElement = document.getElementById('magnifier');
+        if (magnifierElement) {
+            const img = document.querySelector('.gallery-content');
+            if (!img) return;
+            const imgRect = img.getBoundingClientRect();
+            const magnifierSize = 400;
+            const zoomLevel = 2;
+
+            // Store current mouse position for potential restoration
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+
+            // Calculate and store focal point as percentages of image dimensions
+            if (event.clientX > imgRect.left && event.clientX < imgRect.right &&
+                event.clientY > imgRect.top && event.clientY < imgRect.bottom) {
+                storedZoomFocalX = (event.clientX - imgRect.left) / imgRect.width;
+                storedZoomFocalY = (event.clientY - imgRect.top) / imgRect.height;
+            }
+
+            let magnifierX = event.clientX - magnifierSize / 2;
+            let magnifierY = event.clientY - magnifierSize / 2;
+
+            if (magnifierX < imgRect.left) magnifierX = imgRect.left;
+            if (magnifierY < imgRect.top) magnifierY = imgRect.top;
+            if (magnifierX + magnifierSize > imgRect.right) magnifierX = imgRect.right - magnifierSize;
+            if (magnifierY + magnifierSize > imgRect.bottom) magnifierY = imgRect.bottom - magnifierSize;
+
+            if (event.clientX > imgRect.left && event.clientX < imgRect.right &&
+                event.clientY > imgRect.top && event.clientY < imgRect.bottom) {
+                magnifierElement.style.display = 'block';
+                magnifierElement.style.left = `${magnifierX}px`;
+                magnifierElement.style.top = `${magnifierY}px`;
+
+                let bgPosX = (event.clientX - imgRect.left) * zoomLevel - magnifierSize / 2;
+                let bgPosY = (event.clientY - imgRect.top) * zoomLevel - magnifierSize / 2;
+
+                if (bgPosX < 0) bgPosX = 0;
+                if (bgPosY < 0) bgPosY = 0;
+                if (bgPosX + magnifierSize > imgRect.width * zoomLevel) {
+                    bgPosX = imgRect.width * zoomLevel - magnifierSize;
+                }
+                if (bgPosY + magnifierSize > imgRect.height * zoomLevel) {
+                    bgPosY = imgRect.height * zoomLevel - magnifierSize;
+                }
+
+                magnifierElement.style.backgroundImage = `url(${img.src})`;
+                magnifierElement.style.backgroundSize = `${imgRect.width * zoomLevel}px ${imgRect.height * zoomLevel}px`;
+                magnifierElement.style.backgroundPosition = `-${bgPosX}px -${bgPosY}px`;
+            } else {
+                magnifierElement.style.display = 'none';
+            }
+        }
+    }
+}
+
+function restorePersistentZoom() {
+    if (persistentZoomActive && magnifierActive) {
         const img = document.querySelector('.gallery-content');
         if (!img) return;
+        
         const imgRect = img.getBoundingClientRect();
         const magnifierSize = 400;
         const zoomLevel = 2;
+        
+        // Calculate the new mouse position based on stored focal percentages
+        const newMouseX = imgRect.left + (storedZoomFocalX * imgRect.width);
+        const newMouseY = imgRect.top + (storedZoomFocalY * imgRect.height);
+        
+        // Update last mouse position
+        lastMouseX = newMouseX;
+        lastMouseY = newMouseY;
+        
+        // Calculate magnifier position
+        let magnifierX = newMouseX - magnifierSize / 2;
+        let magnifierY = newMouseY - magnifierSize / 2;
 
-        let magnifierX = event.clientX - magnifierSize / 2;
-        let magnifierY = event.clientY - magnifierSize / 2;
-
+        // Boundary checking
         if (magnifierX < imgRect.left) magnifierX = imgRect.left;
         if (magnifierY < imgRect.top) magnifierY = imgRect.top;
         if (magnifierX + magnifierSize > imgRect.right) magnifierX = imgRect.right - magnifierSize;
         if (magnifierY + magnifierSize > imgRect.bottom) magnifierY = imgRect.bottom - magnifierSize;
 
-        if (event.clientX > imgRect.left && event.clientX < imgRect.right &&
-            event.clientY > imgRect.top && event.clientY < imgRect.bottom) {
-            magnifier.style.display = 'block';
-            magnifier.style.left = `${magnifierX}px`;
-            magnifier.style.top = `${magnifierY}px`;
+        // Show magnifier at the restored position
+        const magnifier = document.getElementById('magnifier');
+        if (!magnifier) {
+            createMagnifier();
+        }
+        const magnifierElement = document.getElementById('magnifier');
+        if (magnifierElement) {
+            magnifierElement.style.display = 'block';
+            magnifierElement.style.left = `${magnifierX}px`;
+            magnifierElement.style.top = `${magnifierY}px`;
 
-            let bgPosX = (event.clientX - imgRect.left) * zoomLevel - magnifierSize / 2;
-            let bgPosY = (event.clientY - imgRect.top) * zoomLevel - magnifierSize / 2;
+            // Calculate background position for zoomed view
+            let bgPosX = (newMouseX - imgRect.left) * zoomLevel - magnifierSize / 2;
+            let bgPosY = (newMouseY - imgRect.top) * zoomLevel - magnifierSize / 2;
 
+            // Background position boundary checking
             if (bgPosX < 0) bgPosX = 0;
             if (bgPosY < 0) bgPosY = 0;
             if (bgPosX + magnifierSize > imgRect.width * zoomLevel) {
@@ -911,12 +1173,408 @@ function showMagnifier(event) {
                 bgPosY = imgRect.height * zoomLevel - magnifierSize;
             }
 
-            magnifier.style.backgroundImage = `url(${img.src})`;
-            magnifier.style.backgroundSize = `${imgRect.width * zoomLevel}px ${imgRect.height * zoomLevel}px`;
-            magnifier.style.backgroundPosition = `-${bgPosX}px -${bgPosY}px`;
-        } else {
-            magnifier.style.display = 'none';
+            // Clear any existing background image and force update with new image
+            magnifierElement.style.backgroundImage = 'none';
+            // Use a small delay to ensure the image src has updated
+            setTimeout(() => {
+                magnifierElement.style.backgroundImage = `url(${img.src})`;
+                magnifierElement.style.backgroundSize = `${imgRect.width * zoomLevel}px ${imgRect.height * zoomLevel}px`;
+                magnifierElement.style.backgroundPosition = `-${bgPosX}px -${bgPosY}px`;
+            }, 10);
         }
+        
+        // Don't reset persistentZoomActive here - it should remain true
+        // while user continues navigating in zoom mode
+    }
+}
+
+/**
+ * Get the corresponding RED/SUB file path for the current file
+ */
+function getCorrespondingRedSubPath(currentPath) {
+    console.log('getCorrespondingRedSubPath input:', currentPath);
+    
+    if (!currentPath) {
+        console.log('No currentPath provided');
+        return null;
+    }
+    
+    if (currentPath.includes('/RED/')) {
+        // Switch from RED to SUB
+        const result = currentPath.replace('/RED/', '/SUB/').replace('-red-', '-sub-');
+        console.log('RED->SUB conversion result:', result);
+        return result;
+    } else if (currentPath.includes('/SUB/')) {
+        // Switch from SUB to RED
+        const result = currentPath.replace('/SUB/', '/RED/').replace('-sub-', '-red-');
+        console.log('SUB->RED conversion result:', result);
+        return result;
+    }
+    
+    console.log('Path does not contain /RED/ or /SUB/, returning null');
+    return null; // Not a RED/SUB file
+}
+
+/**
+ * Special version of openGallery for RED/SUB switching that bypasses the file list logic
+ */
+function openGalleryRedSubSwitch(filePath) {
+    // 1) If flagged overlay is open, close it
+    if (flaggedOverlay) {
+        closeFlaggedOverlay();
+    }
+
+    // 2) Proceed with opening the new file, but skip the file list logic
+    if (!galleryOverlay) {
+        galleryOverlay = document.createElement('div');
+        galleryOverlay.id = 'galleryOverlay';
+        galleryOverlay.className = 'gallery-overlay';
+        document.body.appendChild(galleryOverlay);
+    } else {
+        galleryOverlay.innerHTML = '';
+    }
+
+    window.currentFilePath = filePath;
+
+    const fileName = filePath.split('/').pop();
+    let folderForTitle;
+    if (filePath.includes('/RED/') || filePath.includes('/SUB/')) {
+        let parts = filePath.split('/');
+        folderForTitle = parts[3] || "";
+    } else {
+        folderForTitle = document.querySelector('.page-title').getAttribute('data-folder');
+    }
+    const formattedTitle = formatTitle(fileName, folderForTitle);
+
+    // We'll create a container for the "title lines"
+    const titleContainer = document.createElement('div');
+    titleContainer.className = 'gallery-title-container';
+
+    formattedTitle.forEach(line => {
+        const lineElement = document.createElement('div');
+        lineElement.className = 'gallery-title-line';
+        lineElement.innerText = line;
+        titleContainer.appendChild(lineElement);
+    });
+
+    // Extract the date (YYYYMMDD) from the lines for the copy-link logic
+    let date = '';
+    const dateLine = formattedTitle.find(line => /\d{4}-\d{2}-\d{2}/.test(line));
+    if (dateLine) {
+        date = dateLine.replace(/-/g, '');
+    }
+
+    // Only show the copy link for .jpg files
+    if (fileName.endsWith('.jpg')) {
+        const copyLink = document.createElement('a');
+        copyLink.href = '#';
+        copyLink.innerText = 'Copy Image Link';
+        copyLink.className = 'copy-link';
+        copyLink.addEventListener('click', function (event) {
+            event.preventDefault();
+            const url = `https://hatops.astro.princeton.edu${filePath}`;
+            copyToClipboard(url);
+            copyLink.innerText = 'Copied ✅';
+        });
+
+        titleContainer.appendChild(copyLink);
+    }
+
+    const fileType = filePath.split('.').pop();
+
+    // For RED/SUB switch, we keep the same currentGalleryFiles but set index to -1
+    // This way left/right navigation still works, but we don't get the "file not found" error
+    currentGalleryIndex = -1; // Disable normal navigation temporarily
+
+    // Build our overlay content
+    let content;
+    if (fileType === 'html') {
+        content = document.createElement('iframe');
+        content.src = filePath;
+        content.className = 'overlay-iframe gallery-content';
+    } else if (fileType === 'mp4') {
+        content = document.createElement('video');
+        content.src = filePath;
+        content.className = 'gallery-content';
+        content.controls = true;
+    } else {
+        content = document.createElement('img');
+        content.src = filePath;
+        content.className = 'gallery-content';
+    }
+
+    // If there's an error loading the resource, fallback
+    content.onerror = () => {
+        console.error('Error loading file:', filePath);
+        content.alt = 'Failed to load';
+        content.src = '/hatpi/static/placeholder.jpg';
+    };
+
+    // For images, add onload handler to restore persistent zoom if needed
+    if (fileType === 'jpg' || fileType === 'png' || fileType === 'gif') {
+        content.onload = () => {
+            setTimeout(restorePersistentZoom, 50);
+        };
+        setTimeout(() => {
+            if (content.complete && content.naturalHeight !== 0) {
+                restorePersistentZoom();
+            }
+        }, 100);
+    }
+
+    // Function to close gallery overlay
+    function closeGalleryOverlay() {
+        if (galleryOverlay) {
+            document.body.removeChild(galleryOverlay);
+            galleryOverlay = null;
+            currentGalleryIndex = -1;
+            currentGalleryFiles = [];
+            
+            // Clean up zoom state when closing overlay
+            magnifierActive = false;
+            persistentZoomActive = false;
+            document.body.classList.remove('hide-cursor');
+            const magnifier = document.getElementById('magnifier');
+            if (magnifier) {
+                magnifier.style.display = 'none';
+            }
+        }
+    }
+
+    // Create 'esc' button
+    const closeButton = document.createElement('button');
+    closeButton.innerText = 'esc';
+    closeButton.className = "closeButton";
+    closeButton.onclick = closeGalleryOverlay;
+
+    // Keydown listener for Escape key
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeGalleryOverlay();
+        }
+    }, { once: true });
+
+    // Comments + nav container
+    const commentContainer = document.createElement('div');
+    commentContainer.className = 'comment-container';
+
+    const commentBox = document.createElement('textarea');
+    commentBox.className = "commentBox";
+    commentBox.placeholder = 'Add a comment...';
+
+    // author dropdown
+    const authorDropdown = document.createElement('select');
+    authorDropdown.className = 'author-dropdown';
+
+    // 'author' as default label
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Author';
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    authorDropdown.appendChild(defaultOption);
+
+    // authors (example list, add any missing names)
+    const authors = ['Adriana', 'Anthony', 'Antoine', 'Attila', 'Gaspar', 'Geert Jan', 'Joel', 'Sarah', 'Zoli', 'Guest'];
+    authors.forEach(author => {
+        const option = document.createElement('option');
+        option.value = author;
+        option.textContent = author;
+        authorDropdown.appendChild(option);
+    });
+
+    const submitButton = document.createElement('button');
+    submitButton.innerText = 'Submit';
+    submitButton.className = 'submit-button';
+    submitButton.onclick = () => submitCommentOrMarkup(filePath, commentBox.value, authorDropdown.value);
+
+    commentContainer.appendChild(commentBox);
+    commentContainer.appendChild(authorDropdown);
+    commentContainer.appendChild(submitButton);
+
+    // Left/right nav arrows - disable for RED/SUB switching
+    const createArrow = (direction) => {
+        const arrow = document.createElement('a');
+        arrow.innerText = direction === -1 ? '❮' : '❯';
+        arrow.className = `arrow ${direction === -1 ? 'left-arrow' : 'right-arrow'}`;
+        arrow.style.opacity = '0.3'; // Make them appear disabled
+        arrow.style.cursor = 'not-allowed';
+        arrow.onclick = () => {
+            console.log('Navigation disabled during RED/SUB switch');
+        };
+        return arrow;
+    };
+
+    const leftArrow = createArrow(-1);
+    const rightArrow = createArrow(1);
+
+    const navContainer = document.createElement('div');
+    navContainer.className = 'nav-container';
+    navContainer.appendChild(leftArrow);
+    navContainer.appendChild(rightArrow);
+
+    // Construct overall content container
+    const contentContainer = document.createElement('div');
+    contentContainer.className = 'content-container';
+
+    const leftContent = document.createElement('div');
+    leftContent.className = 'left-content';
+    const rightComments = document.createElement('div');
+    rightComments.className = 'right-comments';
+
+    leftContent.appendChild(content);
+    rightComments.appendChild(titleContainer);
+    rightComments.appendChild(commentContainer);
+
+    const flagsContainer = document.createElement('div');
+    flagsContainer.id = 'flags-container';
+    flagsContainer.className = 'flags-container';
+    flagsContainer.innerHTML = `
+        <h3>Flag Selections</h3>
+        <div class="flags-grid">
+            <label><input type="checkbox" value="Airplane"> Airplane (a)</label>
+            <label><input type="checkbox" value="Beautiful"> Beautiful (b)</label>
+            <label><input type="checkbox" value="Clouds"> Clouds (c)</label>
+            <label><input type="checkbox" value="Flash"> Flash (f)</label>
+            <label><input type="checkbox" value="Ghost"> Ghost (g)</label>
+            <label><input type="checkbox" value="Ice"> Ice (i)</label>
+            <label><input type="checkbox" value="Meteor"> Meteor (m)</label>
+            <label><input type="checkbox" value="Readout Issue"> Readout Issue (r)</label>
+            <label><input type="checkbox" value="Shutter Failure"> Shutter Failure (s)</label>
+            <label><input type="checkbox" value="Trail"> Trail (t)</label>
+            <label><input type="checkbox" value="Other"> Other (o) (unusual / unknown)</label>
+            <label><input type="checkbox" value="Weird"> Weird (w)</label>
+        </div>
+        `;
+    rightComments.appendChild(flagsContainer);
+
+    rightComments.appendChild(navContainer);
+
+    // Only add instructions if the file type is .jpg
+    if (fileType === 'jpg') {
+        const instructionsContainer = document.createElement('div');
+        instructionsContainer.className = 'instructions-container';
+        instructionsContainer.style.textAlign = 'left';
+        
+        // Check if this is a RED/SUB file to show additional instructions
+        const isRedSubFile = filePath.includes('/RED/') || filePath.includes('/SUB/');
+        
+        let instructionsHTML = `
+            <p>Press 'z' to toggle zoom on/off</p>
+            <p>Press and hold 'd' to draw</p>
+        `;
+        
+        if (isRedSubFile) {
+            instructionsHTML += `<p>Press ↑/↓ arrows to switch RED/SUB</p>`;
+        }
+        
+        instructionsContainer.innerHTML = instructionsHTML;
+        rightComments.appendChild(instructionsContainer);
+    }
+
+    contentContainer.appendChild(leftContent);
+    contentContainer.appendChild(rightComments);
+
+    galleryOverlay.appendChild(contentContainer);
+    galleryOverlay.appendChild(closeButton);
+
+    adjustGalleryContent();
+
+    // If it's a JPG, set up the drawing canvas
+    if (fileType === 'jpg') {
+        addCanvasOverlay(content);
+    }
+    
+    // Additional call to restore persistent zoom after DOM is fully updated
+    if ((fileType === 'jpg' || fileType === 'png' || fileType === 'gif') && persistentZoomActive) {
+        setTimeout(restorePersistentZoom, 150);
+    }
+
+    const checkboxNodes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
+    checkboxNodes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const label = cb.closest('label');
+            if (!label) return;
+            label.classList.toggle('flag-selected', cb.checked);
+            pendingFlagChanges = true;
+        });
+    });
+
+    precheckKeyboardFlags(filePath);
+}
+
+/**
+ * Determine if a given file path exists in the current gallery list
+ * (i.e., among the visible .file-item anchors on the page).
+ * If present, we can use the standard openGallery() to enable left/right nav.
+ */
+function isFilePresentInGalleryList(filePath) {
+    const fileType = filePath.split('.').pop();
+    let allItems = document.querySelectorAll(
+        fileType === 'html'
+            ? '.plot-list .file-item'
+            : fileType === 'mp4'
+                ? '.movies .file-item'
+                : '.images .file-item'
+    );
+    allItems = Array.from(allItems).filter(item => {
+        return window.getComputedStyle(item).display !== 'none';
+    });
+    const anchors = allItems
+        .map(item => item.querySelector('a'))
+        .filter(a => a !== null);
+    const idx = anchors.findIndex(a =>
+        a.getAttribute('onclick') && a.getAttribute('onclick').includes(filePath)
+    );
+    return idx !== -1;
+}
+
+/**
+ * Check if a file exists and switch to it if it does
+ */
+function switchToCorrespondingFile() {
+    const currentPath = window.currentFilePath;
+    console.log('switchToCorrespondingFile called with currentPath:', currentPath);
+    
+    if (!currentPath) {
+        console.log('No current file path available');
+        return;
+    }
+    
+    const correspondingPath = getCorrespondingRedSubPath(currentPath);
+    console.log('getCorrespondingRedSubPath returned:', correspondingPath);
+    
+    if (!correspondingPath) {
+        console.log('Not a RED/SUB file, cannot switch');
+        return; // Not a RED/SUB file
+    }
+    
+    console.log('Switching from:', currentPath);
+    console.log('Switching to:', correspondingPath);
+    
+    // Store zoom state before switching if zoom is active
+    if (magnifierActive) {
+        persistentZoomActive = true;
+        // Store current mouse position for restoration
+        lastMouseX = lastMouseX || 0;
+        lastMouseY = lastMouseY || 0;
+    }
+    
+    // Call openGallery with a special flag to indicate this is a RED/SUB switch
+    try {
+        if (isFilePresentInGalleryList(correspondingPath)) {
+            // If the target file is in the current list, use the standard overlay
+            // so left/right navigation remains enabled.
+            openGallery(correspondingPath);
+            console.log('openGallery completed successfully for RED/SUB switch');
+        } else {
+            // Fallback to special RED/SUB overlay when the file is not in the list
+            // (keeps navigation disabled to avoid index errors).
+            openGalleryRedSubSwitch(correspondingPath);
+            console.log('openGalleryRedSubSwitch completed successfully');
+        }
+    } catch (error) {
+        console.error('Error switching to corresponding file:', error);
     }
 }
 
@@ -944,7 +1602,7 @@ function openGallery(filePath) {
         closeFlaggedOverlay();
     }
 
-    // 2) Proceed with your existing openGallery code for the “main” overlay
+    // 2) Proceed with your existing openGallery code for the "main" overlay
     if (!galleryOverlay) {
         // create #galleryOverlay, etc...
     } else {
@@ -1001,7 +1659,7 @@ function openGallery(filePath) {
         copyLink.className = 'copy-link';
         copyLink.addEventListener('click', function (event) {
             event.preventDefault();
-            // The user’s old logic used "1-YYYYMMDD" in the link
+            // The user's old logic used "1-YYYYMMDD" in the link
             // const url = `https://hatops.astro.princeton.edu/hatpi/1-${date}/${fileName}`;
             const url = `https://hatops.astro.princeton.edu${filePath}`;
             copyToClipboard(url);
@@ -1080,6 +1738,23 @@ function openGallery(filePath) {
         content.src = '/hatpi/static/placeholder.jpg';
     };
 
+    // For images, add onload handler to restore persistent zoom if needed
+    if (fileType === 'jpg' || fileType === 'png' || fileType === 'gif') {
+        content.onload = () => {
+            // Small delay to ensure DOM is updated
+            setTimeout(restorePersistentZoom, 50);
+        };
+        
+        // Also call restorePersistentZoom after a small delay to handle cached images
+        // where onload might not fire
+        setTimeout(() => {
+            // Check if image is already loaded (cached)
+            if (content.complete && content.naturalHeight !== 0) {
+                restorePersistentZoom();
+            }
+        }, 100);
+    }
+
     // Function to close gallery overlay
     function closeGalleryOverlay() {
         if (galleryOverlay) {
@@ -1087,6 +1762,15 @@ function openGallery(filePath) {
             galleryOverlay = null;
             currentGalleryIndex = -1;
             currentGalleryFiles = [];
+            
+            // Clean up zoom state when closing overlay
+            magnifierActive = false;
+            persistentZoomActive = false;
+            document.body.classList.remove('hide-cursor');
+            const magnifier = document.getElementById('magnifier');
+            if (magnifier) {
+                magnifier.style.display = 'none';
+            }
         }
     }
 
@@ -1124,7 +1808,7 @@ function openGallery(filePath) {
     authorDropdown.appendChild(defaultOption);
 
     // authors (example list, add any missing names)
-    const authors = ['Adriana', 'Anthony', 'Antoine', 'Attila', 'Gaspar', 'Geert Jan', 'Joel', 'Zoli', 'Guest'];
+    const authors = ['Adriana', 'Anthony', 'Antoine', 'Attila', 'Gaspar', 'Geert Jan', 'Joel', 'Sarah', 'Zoli', 'Guest'];
     authors.forEach(author => {
         const option = document.createElement('option');
         option.value = author;
@@ -1200,10 +1884,20 @@ function openGallery(filePath) {
         const instructionsContainer = document.createElement('div');
         instructionsContainer.className = 'instructions-container';
         instructionsContainer.style.textAlign = 'left';
-        instructionsContainer.innerHTML = `
-            <p>Press and hold 'z' to zoom</p>
+        
+        // Check if this is a RED/SUB file to show additional instructions
+        const isRedSubFile = filePath.includes('/RED/') || filePath.includes('/SUB/');
+        
+        let instructionsHTML = `
+            <p>Press 'z' to toggle zoom on/off</p>
             <p>Press and hold 'd' to draw</p>
         `;
+        
+        if (isRedSubFile) {
+            instructionsHTML += `<p>Press ↑/↓ arrows to switch RED/SUB</p>`;
+        }
+        
+        instructionsContainer.innerHTML = instructionsHTML;
         rightComments.appendChild(instructionsContainer);
     }
 
@@ -1218,6 +1912,12 @@ function openGallery(filePath) {
     // If it's a JPG, set up the drawing canvas
     if (fileType === 'jpg') {
         addCanvasOverlay(content);
+    }
+    
+    // Additional call to restore persistent zoom after DOM is fully updated
+    // This handles cases where onload doesn't fire or timing issues occur
+    if ((fileType === 'jpg' || fileType === 'png' || fileType === 'gif') && persistentZoomActive) {
+        setTimeout(restorePersistentZoom, 150);
     }
 
     const checkboxNodes = document.querySelectorAll('#flags-container .flags-grid input[type="checkbox"]');
@@ -1461,7 +2161,7 @@ function formatTitle(fileName, folderName) {
     if (dateMatch) {
         dateStr = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
     } else if (folderName && /^1-\d{8}$/.test(folderName)) {
-        // If file name doesn’t have a date, extract it from folder name.
+        // If file name doesn't have a date, extract it from folder name.
         // Folder name "1-20250310" becomes "2025-03-10".
         dateStr = folderName.substring(2, 6) + '-' + folderName.substring(6, 8) + '-' + folderName.substring(8, 10);
     }
@@ -1532,12 +2232,20 @@ function formatTitle(fileName, folderName) {
         }
     }
 
-    // Extract frame number for JPEGs.
+    // Extract frame number or exposure time for JPEGs.
     let frameStr = '';
     if (!fileName.endsWith('.html') && !fileName.endsWith('.mp4')) {
-        let frameMatch = fileName.match(/1-(\d+)_/);
-        if (frameMatch) {
-            frameStr = `frame: ${frameMatch[1]}`;
+        // Check for exposure time first (for calibration files)
+        let exptimeMatch = fileName.match(/EXPTIME(\d+(?:\.\d+)?)/);
+        if (exptimeMatch) {
+            let expTime = parseFloat(exptimeMatch[1]);
+            frameStr = `Exposure ${expTime}s`;
+        } else {
+            // Fall back to frame number for other files
+            let frameMatch = fileName.match(/1-(\d+)_/);
+            if (frameMatch) {
+                frameStr = `frame: ${frameMatch[1]}`;
+            }
         }
     }
 
@@ -1982,7 +2690,7 @@ function openFlaggedGallery(clickedLink) {
         originalParent = taggedContainer.parentNode;
         originalParent.insertBefore(containerPlaceholder, taggedContainer);
 
-        // If the container’s first child is the wrapper, then get the flagged card for the current group
+        // If the container's first child is the wrapper, then get the flagged card for the current group
         let cardToShow;
         if (
             taggedContainer.firstElementChild &&
@@ -2352,3 +3060,5 @@ function getFlaggedImagesContainer() {
 window.addEventListener('resize', adjustGalleryContent);
 adjustGalleryContent();
 createMagnifier();
+
+document.addEventListener('mousemove', showMagnifier);

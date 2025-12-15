@@ -1,0 +1,15 @@
+# Generated data
+/1-*/
+/ihu-*/
+/RED/
+/SUB/
+/movies/
+/markup_images/
+/daily/
+/logs/
+/download_sandbox/
+/data/
+/calframe_test/
+/__pycache__/
+*.pyc
+*.log
