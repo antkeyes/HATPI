@@ -316,8 +316,12 @@ def home():
 
 @app.route('/<folder_name>/')
 def folder(folder_name):
-    # Avoid expensive full directory scans at render time; the page JS will
-    # load items via /api/folder with pagination.
+    # Ensure the requested folder actually exists; otherwise return 404.
+    folder_path = os.path.join(BASE_DIR, folder_name)
+    if not os.path.isdir(folder_path):
+        return "Not Found", 404
+    # Avoid expensive full directory scans at render time; the page JS will load
+    # items via /api/folder with pagination.
     images, html_files, movies = [], [], []
 
     keyboard_flags = load_keyboard_flags()

@@ -57,6 +57,24 @@ a:hover {
     margin-left: 20%;
 }
 
+/* On folder pages, keep the title flush left and align with the prev button */
+.folder-left-panel .page-title {
+    margin-left: 0;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+#prev-day-button {
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 20%;
+}
+
+#next-day-button {
+    display: inline-block;
+    vertical-align: middle;
+}
+
 .ihu-title {
     display: flex;
     align-items: center;

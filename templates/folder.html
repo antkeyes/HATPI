@@ -218,9 +218,71 @@
                     }
                 } else if (dateMatch) {
                     // Already in the format "YYYY-MM-DD"
-                    const formattedDate = `📂 ${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
+                    const formattedDate = `🔭 ${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;
                     pageTitle.innerText = formattedDate;
                     pageTitle.classList.add('date-title');
+
+                    // Inject a "Previous Day" button next to the title (date pages only)
+                    try {
+                        const year  = parseInt(dateMatch[1], 10);
+                        const month = parseInt(dateMatch[2], 10);
+                        const day   = parseInt(dateMatch[3], 10);
+                        const d = new Date(year, month - 1, day);
+                        d.setDate(d.getDate() - 1);
+                        const y = d.getFullYear();
+                        const m = String(d.getMonth() + 1).padStart(2, '0');
+                        const dd = String(d.getDate()).padStart(2, '0');
+                        const prevFolder = `1-${y}${m}${dd}`;
+                        const prevHref = `/hatpi/${prevFolder}/`;
+
+                        const prevBtn = document.createElement('a');
+                        prevBtn.id = 'prev-day-button';
+                        prevBtn.href = prevHref;
+                        prevBtn.className = 'pill-button-unique';
+                        prevBtn.textContent = 'Previous Day';
+
+                        // Place it immediately to the left of the page title
+                        const parent = pageTitle.parentNode;
+                        parent.insertBefore(prevBtn, pageTitle);
+
+                        // Compute next day and insert a "Next Day" button to the right of the title
+                        const dNext = new Date(year, month - 1, day);
+                        dNext.setDate(dNext.getDate() + 1);
+                        const yn = dNext.getFullYear();
+                        const mn = String(dNext.getMonth() + 1).padStart(2, '0');
+                        const ddn = String(dNext.getDate()).padStart(2, '0');
+                        const nextFolder = `1-${yn}${mn}${ddn}`;
+                        const nextHref = `/hatpi/${nextFolder}/`;
+
+                        // Check existence of the next day; prefer HEAD, fallback to GET
+                        const tryShowNext = () => {
+                            const nextBtn = document.createElement('a');
+                            nextBtn.id = 'next-day-button';
+                            nextBtn.href = nextHref;
+                            nextBtn.className = 'pill-button-unique';
+                            nextBtn.textContent = 'Next Day';
+                            nextBtn.style.marginLeft = '10px';
+                            pageTitle.insertAdjacentElement('afterend', nextBtn);
+                        };
+
+                        fetch(nextHref, { method: 'HEAD', credentials: 'same-origin' })
+                            .then(r => {
+                                if (r && r.ok) {
+                                    tryShowNext();
+                                } else {
+                                    // Some setups may not handle HEAD; try GET lightweight
+                                    return fetch(nextHref, { method: 'GET', credentials: 'same-origin' });
+                                }
+                            })
+                            .then(r2 => {
+                                if (r2 && r2.ok) {
+                                    tryShowNext();
+                                }
+                            })
+                            .catch(() => { /* no next day or unreachable; do nothing */ });
+                    } catch (e) {
+                        // no-op on failure
+                    }
                 }
             }
             // Load calibration mode images by default.
