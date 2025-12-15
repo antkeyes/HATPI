@@ -9,6 +9,14 @@
 </head>
 
 <body class="index-page">
+    <!-- Left sidebar -->
+    <div class="left-sidebar">
+        <nav class="sidebar-nav">
+            <a class="nav-btn active" href="/hatpi">Dates &amp; IHUs</a>
+            <a class="nav-btn" href="/hatpi/lcplots">Light Curve Plots</a>
+            <a class="nav-btn" href="/hatpi/skyflats_runtimes">Daily Skyflats &amp; Task Runtimes</a>
+        </nav>
+    </div>
     <!-- Background animation elements -->
     <div class="background-container">
         <img src="https://s3-us-west-2.amazonaws.com/s.cdpn.io/1231630/moon2.png" alt="">
@@ -17,6 +25,7 @@
     </div>
 
     <div class="content-wrapper">
+        <div id="home-panel">
         <!-- Optional: A pill container to control IHU grid toggling -->
         <div class="pills-container">
             <div id="index-ihu-buttons" class="pill-container-unique">
@@ -44,13 +53,7 @@
                     </div>
                 </div>
                 
-                <a id="lcplots-button" href="/hatpi/lcplots" class="pill-button-unique">
-                    Light Curve Plots
-                </a>
                 
-                <a id="skyflats-runtimes-button" href="/hatpi/skyflats_runtimes" class="pill-button-unique">
-                    Daily Skyflats & Task Runtimes
-                </a>
             </div>
 
             <!-- Right: IHU grid content -->
@@ -120,9 +123,48 @@
             <p>Loading tagged images...</p>
         </div>
 
+        </div> <!-- end #home-panel -->
+        <div id="embed-panel" style="display: none;">
+            <iframe id="embed-frame" class="embed-frame" src="" frameborder="0"></iframe>
+        </div>
+
     </div>
 
     <script src="{{ versioned_url_for('static', filename='scripts.js') }}"></script>
+    <script>
+        // Sidebar nav in-page loading for index only
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('.left-sidebar .nav-btn');
+            const homePanel = document.getElementById('home-panel');
+            const embedPanel = document.getElementById('embed-panel');
+            const embedFrame = document.getElementById('embed-frame');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    if (!homePanel || !embedPanel || !embedFrame) return;
+                    // Update active state
+                    navLinks.forEach(a => a.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const href = this.getAttribute('href') || '';
+                    if (href === '/hatpi' || href === '/hatpi/') {
+                        e.preventDefault();
+                        // Show home content
+                        embedFrame.src = '';
+                        embedPanel.style.display = 'none';
+                        homePanel.style.display = 'block';
+                        return;
+                    }
+
+                    // Load other sections into iframe
+                    e.preventDefault();
+                    embedFrame.src = href;
+                    homePanel.style.display = 'none';
+                    embedPanel.style.display = 'block';
+                });
+            });
+        });
+    </script>
     <script>
         function showTab(tabId, event) {
             // Hide all tab contents

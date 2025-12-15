@@ -22,6 +22,64 @@ body {
     min-height: 100vh;
 }
 
+/* Left sidebar for home page */
+.left-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 200px;
+    background-color: #12181F;
+    border-right: 1px solid #2F363D;
+    z-index: 2;
+}
+
+/* Sidebar nav layout */
+.left-sidebar .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px 10px;
+}
+
+/* Sidebar buttons */
+.left-sidebar .nav-btn {
+    display: block;
+    background-color: #1C1F26;
+    border: 1px solid #2F363D;
+    color: #d4d4d4;
+    padding: 10px 12px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+.left-sidebar .nav-btn:hover {
+    background-color: #21262E;
+    border-color: #3A424B;
+}
+.left-sidebar .nav-btn.active {
+    background-color: #12181F;
+    border: 2px solid #CE9179;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+/* Offset main content on home page to accommodate sidebar */
+body.index-page .content-wrapper {
+    margin-left: 170px; /* 150px + 20px breathing room */
+}
+
+/* Ensure Light Curve Plots content isn't under the left sidebar when viewed standalone */
+body.lcplots-page .content-wrapper {
+    margin-left: 220px; /* 200px sidebar + 20px spacing */
+}
+
+.embed-frame {
+    width: 100%;
+    height: calc(100vh - 80px);
+    border: 0;
+    background: transparent;
+}
+
 h1,
 h2 {
     margin-bottom: 10px;
@@ -1038,7 +1096,7 @@ a.back-to-home:hover {
 }
 
 .dates-container {
-    max-height: 380px;
+    max-height: 540px;
     overflow-y: auto;
     background-color: #1C1F26;
     border-radius: 8px;
@@ -1407,6 +1465,50 @@ body.index-page #flaggedOverlay {
     font-size: 1.8em;
 }
 
+.lcplots-page .breadcrumb-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 12px;
+    color: #8E97A1;
+}
+.lcplots-page .breadcrumb-item,
+.lcplots-page .breadcrumb-current {
+    color: #d4d4d4;
+    text-decoration: none;
+}
+.lcplots-page .breadcrumb-current {
+    font-weight: bold;
+}
+.lcplots-page .breadcrumb-separator {
+    color: #8E97A1;
+}
+
+/* Toolbar */
+.lcplots-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    background-color: rgba(0, 0, 0, 0.35);
+    border-radius: 6px;
+}
+.lcplots-search {
+    flex: 1;
+    background-color: #1C1F26;
+    border: 1px solid #2F363D;
+    color: #d4d4d4;
+    padding: 8px 10px;
+    border-radius: 6px;
+}
+.lcplots-meta {
+    color: #8E97A1;
+    font-size: 0.9rem;
+}
+
 .lcplots-container {
     background-color: rgba(0, 0, 0, 0.4);
     border-radius: 5px;
@@ -1438,14 +1540,24 @@ body.index-page #flaggedOverlay {
 .lcplots-container .file-item {
     display: grid;
     grid-template-columns: 3fr 1fr 1fr;
+    align-items: center;
     border-radius: 3px;
     margin-bottom: 5px;
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .lcplots-container .file-name, 
 .lcplots-container .file-date, 
 .lcplots-container .file-size {
     padding: 10px;
+}
+
+.lcplots-container .file-item.is-hidden {
+    display: none;
+}
+.lcplots-container .file-item:hover {
+    background-color: rgba(255, 255, 255, 0.04);
 }
 
 .lcplots-container .file-name a {

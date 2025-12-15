@@ -103,7 +103,6 @@
     <div class="content-wrapper">
         <div class="header">
             <h1>Light Curve Plots</h1>
-            <a href="/hatpi" class="pill-button-unique">Back to Main Page</a>
         </div>
 
         <!-- Breadcrumb navigation -->
@@ -127,6 +126,14 @@
             {% endif %}
         </div>
 
+        <!-- Toolbar: search and info -->
+        <div class="lcplots-toolbar">
+            <input id="lcplots-search" class="lcplots-search" type="text" placeholder="Filter by name (type to filter)"/>
+            <div class="lcplots-meta">
+                <span id="lcplots-count">0 items</span>
+            </div>
+        </div>
+
         <div class="lcplots-container">
             <div class="file-list">
                 <div class="file-items-header">
@@ -134,7 +141,7 @@
                     <div class="file-date-header">Modified Date</div>
                     <div class="file-size-header">Size</div>
                 </div>
-                <div class="file-items-container">
+                <div class="file-items-container" id="lcplots-items">
                     {% if current_dir %}
                         <!-- Add parent directory navigation option -->
                         <div class="file-item">
@@ -211,6 +218,36 @@
     </div>
 
     <script src="{{ versioned_url_for('static', filename='scripts.js') }}"></script>
+    <script>
+        // Lightweight client-side filter for lcplots items
+        (function () {
+            const searchInput = document.getElementById('lcplots-search');
+            const itemsContainer = document.getElementById('lcplots-items');
+            const countEl = document.getElementById('lcplots-count');
+            if (!searchInput || !itemsContainer) return;
+
+            function updateCount() {
+                const visible = itemsContainer.querySelectorAll('.file-item:not(.is-hidden)').length;
+                if (countEl) countEl.textContent = visible + ' items';
+            }
+
+            function applyFilter() {
+                const q = (searchInput.value || '').toLowerCase().trim();
+                const rows = itemsContainer.querySelectorAll('.file-item');
+                rows.forEach(row => {
+                    const nameEl = row.querySelector('.file-name');
+                    const text = nameEl ? nameEl.textContent.toLowerCase() : '';
+                    const match = !q || text.includes(q);
+                    row.classList.toggle('is-hidden', !match);
+                });
+                updateCount();
+            }
+
+            searchInput.addEventListener('input', applyFilter);
+            // Initialize count on load
+            applyFilter();
+        })();
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Get all image links
