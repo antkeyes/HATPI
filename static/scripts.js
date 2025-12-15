@@ -36,6 +36,12 @@ const CALIBRATION_BUTTONS_HTML = `
  * Visible behavior remains the same; we just fetch in chunks for speed.
  */
 function loadFolder(folderName) {
+    // Show spinner immediately
+    try {
+        const spinner = document.getElementById('folder-loading-spinner');
+        if (spinner) spinner.style.display = 'block';
+    } catch (e) { /* ignore */ }
+
     // Initialize paging state
     window.folderPaging = {
         folderName,
@@ -55,6 +61,11 @@ function loadFolder(folderName) {
             const htmlFiles = data.html_files || [];
             const movies = data.movies || [];
             displayFolderContents(images, htmlFiles, movies, folderName);
+            // Hide spinner after initial render
+            try {
+                const spinner = document.getElementById('folder-loading-spinner');
+                if (spinner) spinner.style.display = 'none';
+            } catch (e) { /* ignore */ }
 
             // Update paging state
             if (data.next_offsets) {
@@ -84,7 +95,13 @@ function loadFolder(folderName) {
             setupLazyLoadObserver('html_files', '.plot-list');
             setupLazyLoadObserver('movies', '.movies');
         })
-        .catch(e => console.error('Error loading folder (paged):', e));
+        .catch(e => {
+            console.error('Error loading folder (paged):', e);
+            try {
+                const spinner = document.getElementById('folder-loading-spinner');
+                if (spinner) spinner.style.display = 'none';
+            } catch (err) { /* ignore */ }
+        });
 }
 
 /**

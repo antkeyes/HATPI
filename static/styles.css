@@ -106,6 +106,7 @@ a:hover {
     overflow-y: scroll;
     scrollbar-color: #8E97A1 #21262E;
     scrollbar-width: thin;
+    position: relative;
 }
 
 .file-list {
@@ -420,6 +421,26 @@ a.back-to-home:hover {
 
 .tab-content.active {
     display: block;
+}
+
+/* Simple centered loading spinner for folder file lists */
+.loading-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(255, 255, 255, 0.15);
+    border-top-color: #CE9179;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    z-index: 2;
+    pointer-events: none;
+}
+
+@keyframes spin {
+    to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 /* gallery overlay styling */
