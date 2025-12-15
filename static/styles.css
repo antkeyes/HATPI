@@ -57,8 +57,8 @@ a:hover {
     margin-left: 20%;
 }
 
-/* On folder pages, keep the title flush left and align with the prev button */
-.folder-left-panel .page-title {
+/* On date pages, keep the title flush left and align with the prev button */
+.folder-left-panel .page-title.date-title {
     margin-left: 0;
     display: inline-block;
     vertical-align: middle;
@@ -402,8 +402,8 @@ a.back-to-home:hover {
 
 
 #data-mode-buttons .mode-button {
-    background-color: #000;
-    border: 1px solid #CE9179;
+    background-color: #1C1F26;
+    border: 1px solid #2F363D;
     color: #d4d4d4;
     padding: 8px 16px;
     /* Slightly smaller than 10px 20px */
@@ -417,7 +417,8 @@ a.back-to-home:hover {
 }
 
 #data-mode-buttons .mode-button:hover {
-    background-color: #CE9179;
+    background-color: #21262E;
+    border-color: #3A424B;
 }
 
 #data-mode-buttons .mode-button.active {

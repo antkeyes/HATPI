@@ -155,34 +155,7 @@
             </div><!-- end folder-content-container -->
         </div><!-- end folder-left-panel -->
 
-        <!-- RIGHT SIDE: Only show if flagged_items is not empty -->
-        {% if flagged_items and flagged_items|length > 0 %}
-        <div id="taggedImagesContainer" class="tagged-images-container">
-            <h2>Tagged Files</h2>
-
-            <!-- We'll give each item a data-index so we know which item it is in JS -->
-            {% for item in flagged_items %}
-            <div class="tagged-card">
-                <div class="tagged-file-name">
-                    <a href="/hatpi{{ item.file_path }}" class="tagged-file-link" data-index="{{ loop.index0 }}"
-                        data-original-path="{{ item.file_path }}">
-                        {{ item.file_path }}
-                    </a>
-                </div>
-
-                <div class="tagged-flags">
-                    <strong>Tags:</strong> <span class="flag-text">{{ item.flags|join(', ') }}</span>
-                </div>
-                <div class="tagged-timestamp">
-                    <strong>Timestamp:</strong> {{ item.timestamp }}
-                </div>
-                <div class="tagged-author">
-                    <strong>Tagged by:</strong> {{ item.author }}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
+        <!-- Tagged files container removed on folder pages -->
 
 
     </div><!-- end folder-page-flex-container -->
@@ -300,37 +273,7 @@
             document.head.appendChild(script);
         }
     </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Collect all links in .tagged-images-container
-            const flaggedLinks = document.querySelectorAll('.tagged-images-container .tagged-file-link');
-            // Convert NodeList to array so we can index them:
-            window.flaggedGalleryFiles = Array.from(flaggedLinks);
-
-            // Attach a click handler to each:
-            flaggedGalleryFiles.forEach((link, index) => {
-                link.addEventListener('click', (event) => {
-                    event.preventDefault();  // prevent normal navigation
-                    if (flaggedOverlay) {
-                        flaggedGalleryIndex = index;
-                        showFlaggedFile(flaggedGalleryFiles[index]);
-                    } else {
-                        openFlaggedGallery(index);
-                    }
-                });
-            });
-        });
-    </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-          document.querySelectorAll('.tagged-file-link').forEach(link => {
-            const originalPath = link.getAttribute('data-original-path');
-            if (originalPath) {
-              link.innerText = formatTaggedFileName(originalPath);
-            }
-          });
-        });
-      </script>
+    <!-- Scripts specific to 'tagged files' removed on folder pages -->
       
 </body>
 
