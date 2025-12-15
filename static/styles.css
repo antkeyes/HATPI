@@ -9,10 +9,17 @@ a {
     color: #333;
 }
 
+html {
+    background-color: #12181F;
+    background-image: linear-gradient(160deg, #161C24 0%, #12181F 45%, #0F141A 100%);
+    min-height: 100%;
+}
+
 body {
     background-color: #12181F;
     background-image: linear-gradient(160deg, #161C24 0%, #12181F 45%, #0F141A 100%);
     line-height: 1.6;
+    min-height: 100vh;
 }
 
 h1,
