@@ -10,7 +10,8 @@ a {
 }
 
 body {
-    background: linear-gradient(135deg, #0D1116 30%, #2E273F 70%);
+    background-color: #12181F;
+    background-image: linear-gradient(160deg, #161C24 0%, #12181F 45%, #0F141A 100%);
     line-height: 1.6;
 }
 
@@ -70,7 +71,7 @@ a:hover {
     margin: 0 auto 20px;
     padding: 20px;
     background-color: #12181F;
-    box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
     z-index: 3;
     /* Ensure it is in front of the background animation */
     border-radius: 8px;
@@ -86,7 +87,7 @@ a:hover {
     width: 60%;
     margin: 0 auto;
     background-color: #12181F;
-    box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
     z-index: 3;
     /* Ensure it is in front of the background animation */
     border-radius: 8px;
@@ -202,7 +203,7 @@ a:hover {
     padding: 20px;
     background-color: #12181F;
     border-radius: 8px;
-    box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
     box-sizing: border-box;
     z-index: 3;
     scrollbar-color: #8E97A1 #21262E;
@@ -327,8 +328,8 @@ a.back-to-home:hover {
 }
 
 .pill-button-unique {
-    background-color: #000000;
-    border: 1px solid #87689E;
+    background-color: #1C1F26;
+    border: 1px solid #2F363D;
     color: #d4d4d4;
     padding: 10px 20px;
     cursor: pointer;
@@ -343,20 +344,21 @@ a.back-to-home:hover {
 }
 
 .pill-button-unique:hover {
-    background-color: #87689E;
+    background-color: #21262E;
+    border-color: #3A424B;
 }
 
 .pill-button-unique.active {
-    background-color: #000000;
+    background-color: #12181F;
     font-weight: bold;
     font-size: 1.3rem;
     /* Make text bold for active pill */
-    border: 3px solid #87689E;
-    box-shadow: 0 0 15px rgba(135, 104, 159, 0.8);
+    border: 2px solid #CE9179;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
 .pill-button-unique.active:hover {
-    background-color: #87689E;
+    background-color: #1C1F26;
 }
 
 #index-ihu-buttons {
@@ -393,11 +395,11 @@ a.back-to-home:hover {
 }
 
 #data-mode-buttons .mode-button.active {
-    background-color: #000;
+    background-color: #12181F;
     font-weight: bold;
     font-size: 1.2rem;
-    border: 3px solid #CE9179;
-    box-shadow: 0 0 15px #CE9179;
+    border: 2px solid #CE9179;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
 #data-mode-buttons .mode-button.active:hover {
@@ -663,7 +665,7 @@ a.back-to-home:hover {
 
 .submit-button:hover {
     /* border: 3px solid #87689E; */
-    box-shadow: 0 0 15px rgba(135, 104, 159, 0.8);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
 /* Styles for folder list on the home page */
@@ -714,40 +716,15 @@ a.back-to-home:hover {
 }
 
 .background-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    z-index: -1;
+    display: none !important;
 }
 
 .stars {
-    background: black url(https://s3-us-west-2.amazonaws.com/s.cdpn.io/1231630/stars.png) repeat;
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    display: block;
-    z-index: 0;
+    display: none !important;
 }
 
 .twinkling {
-    width: 10000px;
-    height: 100%;
-    background: transparent url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/1231630/twinkling.png") repeat;
-    background-size: 1000px 1000px;
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 2;
-    -moz-animation: move-background 70s linear infinite;
-    -ms-animation: move-background 70s linear infinite;
-    -o-animation: move-background 70s linear infinite;
-    -webkit-animation: move-background 70s linear infinite;
-    animation: move-background 70s linear infinite;
+    display: none !important;
 }
 
 /* overlay comment log styles */
@@ -1021,7 +998,13 @@ a.back-to-home:hover {
     padding: 10px;
     scrollbar-color: #8E97A1 #21262E;
     scrollbar-width: thin;
-    box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* Ensure only the outer dates-container scrolls (avoid nested scrollbars) */
+.dates-container .file-items-container {
+    max-height: none;
+    overflow: visible;
 }
 
 #lcplots-button {
@@ -1031,8 +1014,9 @@ a.back-to-home:hover {
 }
 
 #lcplots-button:hover {
-    background-color: #87689E;
-    color: #d4d4d4; /* Ensure text stays light gray on hover */
+    background-color: #21262E;
+    border-color: #3A424B;
+    color: #d4d4d4;
 }
 
 .ihu-container {
@@ -1225,7 +1209,7 @@ label.flag-selected {
     padding: 20px;
     background-color: #12181F;
     border-radius: 8px;
-    box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
     box-sizing: border-box;
     overflow-y: auto;
 }
@@ -1247,7 +1231,7 @@ label.flag-selected {
     background-color: #12181F;
     /* match the comments container */
     border-radius: 8px;
-    box-shadow: 0 0 60px rgba(135, 104, 159, 0.4);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
     overflow-y: auto;
 }
 
@@ -1581,7 +1565,8 @@ body.index-page #flaggedOverlay {
 }
 
 #skyflats-runtimes-button:hover {
-    background-color: #87689E;
+    background-color: #21262E;
+    border-color: #3A424B;
     color: #d4d4d4;
 }
 

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Contents of {{ folder_name }}</title>
-    <link rel="stylesheet" href="/hatpi/static/styles.css">
+    <link rel="stylesheet" href="{{ versioned_url_for('static', filename='styles.css') }}">
     <link rel="icon" type="image/png" href="/hatpi/images/favicon.png">
 </head>
 
@@ -186,7 +186,7 @@
     </div><!-- end folder-page-flex-container -->
 
     <!-- Your scripts -->
-    <script src="/hatpi/static/scripts.js"></script>
+    <script src="{{ versioned_url_for('static', filename='scripts.js') }}"></script>
     <script>
         // On DOMContentLoaded, adjust the page title (IHU color logic) and load the default calibration folder.
         document.addEventListener('DOMContentLoaded', function () {
