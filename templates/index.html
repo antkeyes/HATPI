@@ -265,20 +265,66 @@
                     const toolbar = frag.querySelector('.lcplots-toolbar'); toolbar && toolbar.remove();
                     const list = frag.querySelector('.lcplots-container');
                     if (!list) return;
-                    embedPanel.innerHTML = '';
-                    // Add a small back button to return to grid
-                    const back = document.createElement('a');
-                    back.className = 'pill-button-unique';
-                    back.textContent = 'Back';
-                    back.style.margin = '20px 0';
-                    back.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        renderLcplotsGrid();
+                    // Embedded pruning: remove header row, size column, and Parent Directory row
+                    const headerRow = list.querySelector('.file-items-header');
+                    if (headerRow) headerRow.remove();
+                    const sizeHeaders = list.querySelectorAll('.file-size-header');
+                    sizeHeaders.forEach(el => el.remove());
+                    const fileItems = Array.from(list.querySelectorAll('.file-item'));
+                    fileItems.forEach(item => {
+                        // Remove Parent Directory row(s)
+                        const nameEl = item.querySelector('.file-name');
+                        if (nameEl && /Parent Directory/i.test(nameEl.textContent || '')) {
+                            item.remove();
+                            return;
+                        }
+                        // Remove size cell and reflow to two columns
+                        const sizeCell = item.querySelector('.file-size');
+                        if (sizeCell && sizeCell.parentNode) {
+                            sizeCell.parentNode.removeChild(sizeCell);
+                        }
+                        item.style.gridTemplateColumns = '3fr 1fr';
                     });
-                    // Wrap back button and list in a shell to align left edges
+                    embedPanel.innerHTML = '';
+                    // Wrap breadcrumb and list in a shell to align left edges
                     const shell = document.createElement('div');
                     shell.className = 'lcplots-embed-shell';
-                    shell.appendChild(back);
+                    // Build breadcrumb for embedded navigation
+                    const nav = document.createElement('div');
+                    nav.className = 'breadcrumb-nav';
+                    // Ensure we construct from the embedded href
+                    const basePath = '/hatpi/lcplots';
+                    // Strip origin if present
+                    const hrefPath = (href || '').replace(/^https?:\/\/[^/]+/, '');
+                    const relative = hrefPath.startsWith(basePath) ? hrefPath.slice(basePath.length) : '';
+                    const parts = relative.split('/').filter(Boolean);
+                    // Start with Home
+                    const homeLink = document.createElement('a');
+                    homeLink.className = 'breadcrumb-item';
+                    homeLink.href = basePath;
+                    homeLink.textContent = 'IHUs';
+                    nav.appendChild(homeLink);
+                    let accum = basePath;
+                    parts.forEach((part, idx) => {
+                        const sep = document.createElement('span');
+                        sep.className = 'breadcrumb-separator';
+                        sep.textContent = '/';
+                        nav.appendChild(sep);
+                        accum = accum + '/' + part;
+                        if (idx === parts.length - 1) {
+                            const cur = document.createElement('span');
+                            cur.className = 'breadcrumb-current';
+                            cur.textContent = decodeURIComponent(part);
+                            nav.appendChild(cur);
+                        } else {
+                            const a = document.createElement('a');
+                            a.className = 'breadcrumb-item';
+                            a.href = accum;
+                            a.textContent = decodeURIComponent(part);
+                            nav.appendChild(a);
+                        }
+                    });
+                    shell.appendChild(nav);
                     shell.appendChild(list);
                     embedPanel.appendChild(shell);
                 } catch (e) {
