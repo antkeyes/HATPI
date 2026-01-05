@@ -86,6 +86,107 @@ body.lcplots-page .content-wrapper {
     margin: 0 auto;
 }
 
+/* Inline image viewer for embedded Light Curve Plots */
+.lcplots-embed-image-viewer {
+    max-width: 1000px;
+    margin: 0 auto 20px;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 5px;
+    padding: 10px;
+    text-align: center;
+}
+.lcplots-embed-image-viewer img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Full-screen overlay gallery for embedded Light Curve Plots */
+.lcplots-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.92);
+    z-index: 9999;
+    display: none; /* shown via JS */
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.lcplots-overlay-content {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 80px; /* reserve space away from edges/controls */
+    box-sizing: border-box;
+}
+.lcplots-overlay-content img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* ensure whole image is visible with no cropping */
+}
+.lcplots-overlay-caption {
+    margin-bottom: 10px;
+    text-align: center;
+    color: #d4d4d4;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+.lcplots-overlay-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid #2F363D;
+    background: #1C1F26;
+    color: #d4d4d4;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 1;
+}
+.lcplots-overlay-prev,
+.lcplots-overlay-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: 1px solid #2F363D;
+    background: #1C1F26;
+    color: #d4d4d4;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+.lcplots-overlay-prev {
+    left: 20px;
+}
+.lcplots-overlay-next {
+    right: 20px;
+}
+
 /* Ensure spacing between Back button and the lcplots list when embedded */
 .lcplots-embed-shell .pill-button-unique {
     display: inline-block;

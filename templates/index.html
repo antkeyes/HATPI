@@ -326,6 +326,111 @@
                     });
                     shell.appendChild(nav);
                     shell.appendChild(list);
+                    // Build overlay gallery (created on first use)
+                    let overlayEl = null;
+                    let overlayImg = null;
+                    let overlayCaption = null;
+                    let overlayKeyHandler = null;
+                    let currentIndex = 0;
+                    let overlayImages = [];
+                    function createOverlay() {
+                        overlayEl = document.createElement('div');
+                        overlayEl.className = 'lcplots-overlay';
+                        // Content wrapper
+                        const content = document.createElement('div');
+                        content.className = 'lcplots-overlay-content';
+                        // Close button
+                        const closeBtn = document.createElement('button');
+                        closeBtn.className = 'lcplots-overlay-close';
+                        closeBtn.setAttribute('aria-label', 'Close');
+                        closeBtn.textContent = '×';
+                        closeBtn.addEventListener('click', closeOverlay);
+                        // Prev/Next
+                        const prevBtn = document.createElement('button');
+                        prevBtn.className = 'lcplots-overlay-prev';
+                        prevBtn.setAttribute('aria-label', 'Previous image');
+                        prevBtn.textContent = '‹';
+                        prevBtn.addEventListener('click', () => showAt(currentIndex - 1, overlayImages));
+                        const nextBtn = document.createElement('button');
+                        nextBtn.className = 'lcplots-overlay-next';
+                        nextBtn.setAttribute('aria-label', 'Next image');
+                        nextBtn.textContent = '›';
+                        nextBtn.addEventListener('click', () => showAt(currentIndex + 1, overlayImages));
+                        // Image and caption
+                        overlayImg = document.createElement('img');
+                        overlayCaption = document.createElement('div');
+                        overlayCaption.className = 'lcplots-overlay-caption';
+                        // Place caption above the image
+                        content.appendChild(overlayCaption);
+                        content.appendChild(overlayImg);
+                        overlayEl.appendChild(content);
+                        overlayEl.appendChild(closeBtn);
+                        overlayEl.appendChild(prevBtn);
+                        overlayEl.appendChild(nextBtn);
+                        overlayEl.addEventListener('click', (evt) => {
+                            // Close when clicking the backdrop only
+                            if (evt.target === overlayEl) closeOverlay();
+                        });
+                        document.body.appendChild(overlayEl);
+                    }
+                    function openOverlay(index, images) {
+                        if (!overlayEl) createOverlay();
+                        overlayImages = images || [];
+                        document.body.style.overflow = 'hidden';
+                        overlayEl.style.display = 'flex';
+                        currentIndex = index;
+                        showAt(currentIndex, overlayImages);
+                        // Keyboard navigation
+                        overlayKeyHandler = (evt) => {
+                            if (evt.key === 'Escape') {
+                                closeOverlay();
+                            } else if (evt.key === 'ArrowLeft') {
+                                showAt(currentIndex - 1, images);
+                            } else if (evt.key === 'ArrowRight') {
+                                showAt(currentIndex + 1, images);
+                            }
+                        };
+                        document.addEventListener('keydown', overlayKeyHandler);
+                    }
+                    function closeOverlay() {
+                        if (overlayEl) {
+                            overlayEl.style.display = 'none';
+                        }
+                        document.body.style.overflow = '';
+                        if (overlayKeyHandler) {
+                            document.removeEventListener('keydown', overlayKeyHandler);
+                            overlayKeyHandler = null;
+                        }
+                    }
+                    function showAt(index, images) {
+                        if (!images || images.length === 0) return;
+                        // Wrap around
+                        if (index < 0) index = images.length - 1;
+                        if (index >= images.length) index = 0;
+                        currentIndex = index;
+                        const item = images[currentIndex];
+                        if (overlayImg) {
+                            overlayImg.src = item.src;
+                            overlayImg.alt = item.name || '';
+                        }
+                        if (overlayCaption) {
+                            overlayCaption.textContent = item.name || '';
+                        }
+                    }
+                    // Handle image-link clicks to open overlay gallery
+                    list.addEventListener('click', function (e) {
+                        const link = e.target && e.target.closest && e.target.closest('a.image-link');
+                        if (!link) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const imageLinks = Array.from(list.querySelectorAll('a.image-link'));
+                        const images = imageLinks.map(a => ({
+                            src: a.getAttribute('data-path') || a.getAttribute('href'),
+                            name: a.getAttribute('data-name') || (a.textContent || '').trim()
+                        })).filter(img => !!img.src);
+                        const clickedIndex = imageLinks.indexOf(link);
+                        openOverlay(Math.max(0, clickedIndex), images);
+                    });
                     embedPanel.appendChild(shell);
                 } catch (e) {
                     console.error('renderLcplotsPage failed', e);
