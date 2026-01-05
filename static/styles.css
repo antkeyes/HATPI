@@ -65,7 +65,7 @@ body {
 
 /* Offset main content on home page to accommodate sidebar */
 body.index-page .content-wrapper {
-    margin-left: 170px; /* 150px + 20px breathing room */
+    margin-left: 220px; /* 200px sidebar + 20px spacing */
 }
 
 /* Ensure Light Curve Plots content isn't under the left sidebar when viewed standalone */
@@ -73,11 +73,55 @@ body.lcplots-page .content-wrapper {
     margin-left: 220px; /* 200px sidebar + 20px spacing */
 }
 
-.embed-frame {
+.embed-panel {
     width: 100%;
-    height: calc(100vh - 80px);
-    border: 0;
-    background: transparent;
+    min-height: 60vh;
+    padding: 10px 20px;
+    margin-top: 100px;
+}
+
+/* Shared max-width wrapper when embedding lcplots inside #embed-panel */
+.lcplots-embed-shell {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Ensure spacing between Back button and the lcplots list when embedded */
+.lcplots-embed-shell .pill-button-unique {
+    display: inline-block;
+    margin-bottom: 20px;
+}
+.lcplots-embed-shell .lcplots-container {
+    margin-top: 0; /* rely on Back button's bottom margin to create ~20px gap */
+}
+
+/* Tighter centered layout for embedded Light Curve Plots */
+.embed-panel .lcplots-container {
+    max-width: 1000px;
+    margin: 10px auto;
+}
+
+/* Column browser layout for embedded Light Curve Plots */
+.embed-panel .column-browser {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+.embed-panel .column {
+    flex: 0 0 360px;
+    max-height: 70vh;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.35);
+    border: 1px solid #2F363D;
+    border-radius: 8px;
+    padding: 10px;
+}
+.embed-panel .column .file-items-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
 h1,

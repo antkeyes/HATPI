@@ -124,9 +124,7 @@
         </div>
 
         </div> <!-- end #home-panel -->
-        <div id="embed-panel" style="display: none;">
-            <iframe id="embed-frame" class="embed-frame" src="" frameborder="0"></iframe>
-        </div>
+        <div id="embed-panel" class="embed-panel" style="display: none;"></div>
 
     </div>
 
@@ -137,11 +135,253 @@
             const navLinks = document.querySelectorAll('.left-sidebar .nav-btn');
             const homePanel = document.getElementById('home-panel');
             const embedPanel = document.getElementById('embed-panel');
-            const embedFrame = document.getElementById('embed-frame');
+
+            async function loadIntoEmbed(url) {
+                try {
+                    const resp = await fetch(url, { credentials: 'same-origin' });
+                    if (!resp.ok) return false;
+                    const html = await resp.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const content = doc.querySelector('.content-wrapper');
+                    if (!content) return false;
+                    // Extract inner content of target page
+                    const fragment = document.createElement('div');
+                    fragment.innerHTML = content.innerHTML;
+                    // Page-specific pruning when embedded
+                    if (url.includes('/lcplots')) {
+                        const headerTitle = fragment.querySelector('.header h1');
+                        if (headerTitle && headerTitle.parentNode) {
+                            headerTitle.parentNode.removeChild(headerTitle);
+                        }
+                        const breadcrumb = fragment.querySelector('.breadcrumb-nav');
+                        if (breadcrumb && breadcrumb.parentNode) {
+                            breadcrumb.parentNode.removeChild(breadcrumb);
+                        }
+                        const toolbar = fragment.querySelector('.lcplots-toolbar');
+                        if (toolbar && toolbar.parentNode) {
+                            toolbar.parentNode.removeChild(toolbar);
+                        }
+                        // Remove empty header container if it has no visible content
+                        const header = fragment.querySelector('.header');
+                        if (header && header.textContent.trim() === '' && header.children.length === 0) {
+                            header.parentNode && header.parentNode.removeChild(header);
+                        }
+                        // Start the Light Curve Plots embedded UX
+                        renderLcplotsStart(url, fragment);
+                        return true;
+                    }
+                    // Collect and re-execute inline scripts
+                    const scripts = Array.from(fragment.querySelectorAll('script'));
+                    scripts.forEach(s => s.parentNode && s.parentNode.removeChild(s));
+                    embedPanel.innerHTML = '';
+                    embedPanel.appendChild(fragment);
+                    // Re-attach scripts so they execute
+                    scripts.forEach(s => {
+                        const ns = document.createElement('script');
+                        if (s.src) {
+                            ns.src = s.src;
+                        } else {
+                            ns.textContent = s.textContent || '';
+                        }
+                        document.body.appendChild(ns);
+                        // Clean up dynamically added script tag
+                        setTimeout(() => ns.remove(), 0);
+                    });
+                    return true;
+                } catch (e) {
+                    console.error('Embed load failed:', e);
+                    return false;
+                }
+            }
+
+            // Embedded Light Curve Plots – Grid-first UX
+            function renderLcplotsStart(url, fragment) {
+                // If base lcplots URL, show IHU grid; else render the specific directory
+                const basePaths = ['/hatpi/lcplots', '/hatpi/lcplots/'];
+                if (basePaths.includes(url)) {
+                    renderLcplotsGrid();
+                } else {
+                    renderLcplotsPage(url);
+                }
+            }
+            function renderLcplotsGrid() {
+                embedPanel.innerHTML = '';
+                // Use the same structure/classes as the home page grid for identical layout
+                const gridContainer = document.createElement('div');
+                gridContainer.id = 'grid-container-ihu-sequential';
+                gridContainer.className = 'grid-container-ihu';
+                embedPanel.appendChild(gridContainer);
+
+                const sequentialRowColumns = [3, 7, 8, 9, 9, 9, 8, 6, 4, 1];
+                const sequentialRowColors = ["#D5A6BE", "#B4A7D6", "#CEE1F3", "#6FA7DC", "#77A5AF", "#93C47D", "#F9E499", "#F5B26B", "#E06566", "#CC4125"];
+                let textIndex = 64;  // Starting text index
+
+                for (let i = 0; i < sequentialRowColumns.length; i++) {
+                    const row = document.createElement('div');
+                    row.className = 'grid-row-ihu';
+                    // Use the same CSS-driven sizing; set columns via var to match styles
+                    row.style.setProperty('--columns', String(sequentialRowColumns[i]));
+                    row.style.display = 'grid';
+                    row.style.gridTemplateColumns = `repeat(${sequentialRowColumns[i]}, 45px)`;
+                    row.style.justifyContent = 'center';
+
+                    const cells = [];
+                    for (let j = 0; j < sequentialRowColumns[i]; j++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'grid-item-ihu';
+                        cell.style.backgroundColor = sequentialRowColors[i];
+                        const button = document.createElement('button');
+                        button.textContent = String(textIndex);
+                        (function (index) {
+                            button.addEventListener('click', function () {
+                                const cellNumber = index.toString().padStart(2, '0');
+                                const href = `/hatpi/lcplots/ihu${cellNumber}`;
+                                renderLcplotsPage(href);
+                            });
+                        })(textIndex);
+                        cell.appendChild(button);
+                        cells.unshift(cell); // prepend to mirror the sequential layout
+                        textIndex--;
+                    }
+                    cells.forEach(cell => row.appendChild(cell));
+                    gridContainer.appendChild(row);
+                }
+            }
+            async function renderLcplotsPage(href) {
+                try {
+                    const resp = await fetch(href, { credentials: 'same-origin' });
+                    if (!resp.ok) return;
+                    const html = await resp.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const content = doc.querySelector('.content-wrapper');
+                    if (!content) return;
+                    const frag = document.createElement('div');
+                    frag.innerHTML = content.innerHTML;
+                    // Prune header/breadcrumb/toolbar when embedded
+                    const header = frag.querySelector('.header'); header && header.remove();
+                    const breadcrumb = frag.querySelector('.breadcrumb-nav'); breadcrumb && breadcrumb.remove();
+                    const toolbar = frag.querySelector('.lcplots-toolbar'); toolbar && toolbar.remove();
+                    const list = frag.querySelector('.lcplots-container');
+                    if (!list) return;
+                    embedPanel.innerHTML = '';
+                    // Add a small back button to return to grid
+                    const back = document.createElement('a');
+                    back.className = 'pill-button-unique';
+                    back.textContent = 'Back';
+                    back.style.margin = '20px 0';
+                    back.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        renderLcplotsGrid();
+                    });
+                    // Wrap back button and list in a shell to align left edges
+                    const shell = document.createElement('div');
+                    shell.className = 'lcplots-embed-shell';
+                    shell.appendChild(back);
+                    shell.appendChild(list);
+                    embedPanel.appendChild(shell);
+                } catch (e) {
+                    console.error('renderLcplotsPage failed', e);
+                }
+            }
+
+            // Column browser helpers (legacy, unused now but kept for reference)
+            function isDirectoryLink(a) {
+                if (!a) return false;
+                const href = a.getAttribute('href') || '';
+                // treat non-image/pdf as directory (lcplots uses directory links without extension)
+                return href.startsWith('/hatpi/lcplots') && !/\.(jpg|jpeg|png|gif|pdf|txt|fits)$/i.test(href);
+            }
+            function extractListContainer(fragment) {
+                // Use the entire file-list as a column content
+                const list = fragment.querySelector('.lcplots-container .file-list');
+                return list ? list.cloneNode(true) : null;
+            }
+            async function renderLcplotsColumns(url, fragment) {
+                embedPanel.innerHTML = '';
+                const shell = document.createElement('div');
+                shell.className = 'column-browser';
+                embedPanel.appendChild(shell);
+                // first column
+                const firstCol = document.createElement('div');
+                firstCol.className = 'column';
+                const firstList = extractListContainer(fragment);
+                if (firstList) firstCol.appendChild(firstList);
+                shell.appendChild(firstCol);
+                attachColumnHandlers(firstCol, shell);
+            }
+            function attachColumnHandlers(columnEl, browserEl) {
+                columnEl.addEventListener('click', async (evt) => {
+                    const link = evt.target && evt.target.closest && evt.target.closest('a');
+                    if (!link) return;
+                    const href = link.getAttribute('href') || '';
+                    // Skip image overlay links
+                    if (link.classList && link.classList.contains('image-link')) return;
+                    if (!href.startsWith('/hatpi/lcplots')) return;
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    // Determine this column index
+                    const columns = Array.from(browserEl.querySelectorAll('.column'));
+                    const colIndex = columns.indexOf(columnEl);
+                    // If directory, fetch and append a new column; else navigate/open as usual
+                    if (isDirectoryLink(link)) {
+                        // Remove any columns to the right
+                        for (let i = columns.length - 1; i > colIndex; i--) {
+                            columns[i].remove();
+                        }
+                        // Fetch next
+                        try {
+                            const resp = await fetch(href, { credentials: 'same-origin' });
+                            if (!resp.ok) return;
+                            const html = await resp.text();
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            const content = doc.querySelector('.content-wrapper');
+                            if (!content) return;
+                            const frag = document.createElement('div');
+                            frag.innerHTML = content.innerHTML;
+                            // prune embedded-only elements if present
+                            const header = frag.querySelector('.header'); header && header.remove();
+                            const breadcrumb = frag.querySelector('.breadcrumb-nav'); breadcrumb && breadcrumb.remove();
+                            const toolbar = frag.querySelector('.lcplots-toolbar'); toolbar && toolbar.remove();
+                            const list = extractListContainer(frag);
+                            if (!list) return;
+                            const newCol = document.createElement('div');
+                            newCol.className = 'column';
+                            newCol.appendChild(list);
+                            browserEl.appendChild(newCol);
+                            attachColumnHandlers(newCol, browserEl);
+                            // Scroll to the far right to reveal new column
+                            browserEl.scrollLeft = browserEl.scrollWidth;
+                        } catch (e) {
+                            console.error('Column fetch failed', e);
+                        }
+                    } else {
+                        // Non-directory files: default behavior (open link)
+                        window.open(href, '_blank');
+                    }
+                });
+            }
+
+            // Global delegated navigation inside embedded lcplots content for all nested levels
+            if (embedPanel) {
+                embedPanel.addEventListener('click', function (evt) {
+                    const link = evt.target && evt.target.closest && evt.target.closest('a');
+                    if (!link) return;
+                    const lh = link.getAttribute('href') || '';
+                    // Skip image overlay links
+                    if (link.classList && link.classList.contains('image-link')) return;
+                    if (lh.startsWith('/hatpi/lcplots')) {
+                        evt.preventDefault();
+                        loadIntoEmbed(lh);
+                    }
+                });
+            }
 
             navLinks.forEach(link => {
                 link.addEventListener('click', function (e) {
-                    if (!homePanel || !embedPanel || !embedFrame) return;
+                    if (!homePanel || !embedPanel) return;
                     // Update active state
                     navLinks.forEach(a => a.classList.remove('active'));
                     this.classList.add('active');
@@ -150,17 +390,22 @@
                     if (href === '/hatpi' || href === '/hatpi/') {
                         e.preventDefault();
                         // Show home content
-                        embedFrame.src = '';
                         embedPanel.style.display = 'none';
                         homePanel.style.display = 'block';
                         return;
                     }
 
-                    // Load other sections into iframe
+                    // Load other sections inline
                     e.preventDefault();
-                    embedFrame.src = href;
-                    homePanel.style.display = 'none';
-                    embedPanel.style.display = 'block';
+                    loadIntoEmbed(href).then(ok => {
+                        if (ok) {
+                            homePanel.style.display = 'none';
+                            embedPanel.style.display = 'block';
+                        } else {
+                            // Fallback: navigate normally if inline load fails
+                            window.location.href = href;
+                        }
+                    });
                 });
             });
         });
