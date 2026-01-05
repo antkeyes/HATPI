@@ -205,6 +205,109 @@
                             document.body.appendChild(ns);
                             setTimeout(() => ns.remove(), 0);
                         });
+                        // Add overlay gallery (iframe-based) for embedded skyflats links with keyboard and click navigation
+                        (function attachSkyflatsOverlay() {
+                            let overlayEl = null;
+                            let overlayFrame = null;
+                            let overlayCaption = null;
+                            let overlayKeyHandler = null;
+                            let currentIndex = 0;
+                            let overlayItems = [];
+                            function createOverlay() {
+                                overlayEl = document.createElement('div');
+                                overlayEl.className = 'lcplots-overlay skyflats-overlay';
+                                const content = document.createElement('div');
+                                content.className = 'lcplots-overlay-content skyflats-overlay-content';
+                                overlayCaption = document.createElement('div');
+                                overlayCaption.className = 'lcplots-overlay-caption';
+                                overlayFrame = document.createElement('iframe');
+                                overlayFrame.setAttribute('aria-label', 'Plot viewer');
+                                overlayFrame.style.background = '#fff';
+                                overlayFrame.style.border = 'none';
+                                content.appendChild(overlayCaption);
+                                content.appendChild(overlayFrame);
+                                const closeBtn = document.createElement('button');
+                                closeBtn.className = 'lcplots-overlay-close';
+                                closeBtn.setAttribute('aria-label', 'Close');
+                                closeBtn.textContent = '×';
+                                closeBtn.addEventListener('click', closeOverlay);
+                                const prevBtn = document.createElement('button');
+                                prevBtn.className = 'lcplots-overlay-prev';
+                                prevBtn.setAttribute('aria-label', 'Previous');
+                                prevBtn.textContent = '‹';
+                                prevBtn.addEventListener('click', () => showAt(currentIndex - 1, overlayItems));
+                                const nextBtn = document.createElement('button');
+                                nextBtn.className = 'lcplots-overlay-next';
+                                nextBtn.setAttribute('aria-label', 'Next');
+                                nextBtn.textContent = '›';
+                                nextBtn.addEventListener('click', () => showAt(currentIndex + 1, overlayItems));
+                                overlayEl.appendChild(content);
+                                overlayEl.appendChild(closeBtn);
+                                overlayEl.appendChild(prevBtn);
+                                overlayEl.appendChild(nextBtn);
+                                overlayEl.addEventListener('click', (evt) => {
+                                    if (evt.target === overlayEl) closeOverlay();
+                                });
+                                document.body.appendChild(overlayEl);
+                            }
+                            function openOverlay(index, items) {
+                                if (!overlayEl) createOverlay();
+                                overlayItems = items || [];
+                                document.body.style.overflow = 'hidden';
+                                overlayEl.style.display = 'flex';
+                                currentIndex = index;
+                                showAt(currentIndex, overlayItems);
+                                overlayKeyHandler = (evt) => {
+                                    if (evt.key === 'Escape') closeOverlay();
+                                    else if (evt.key === 'ArrowLeft') showAt(currentIndex - 1, overlayItems);
+                                    else if (evt.key === 'ArrowRight') showAt(currentIndex + 1, overlayItems);
+                                };
+                                document.addEventListener('keydown', overlayKeyHandler);
+                            }
+                            function closeOverlay() {
+                                if (overlayEl) overlayEl.style.display = 'none';
+                                document.body.style.overflow = '';
+                                if (overlayKeyHandler) {
+                                    document.removeEventListener('keydown', overlayKeyHandler);
+                                    overlayKeyHandler = null;
+                                }
+                            }
+                            function showAt(index, items) {
+                                if (!items || items.length === 0) return;
+                                if (index < 0) index = items.length - 1;
+                                if (index >= items.length) index = 0;
+                                currentIndex = index;
+                                const it = items[currentIndex];
+                                if (overlayFrame) {
+                                    overlayFrame.src = it.src;
+                                }
+                                if (overlayCaption) {
+                                    overlayCaption.textContent = it.name || '';
+                                }
+                            }
+                            // Delegate clicks on file-name anchors inside skyflats/runtimes containers
+                            shell.addEventListener('click', function (e) {
+                                const link = e.target && e.target.closest && e.target.closest('.skyflats-container .file-name a, .runtimes-container .file-name a');
+                                if (!link) return;
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const onclickAttr = link.getAttribute('onclick') || '';
+                                const m = onclickAttr.match(/loadPlot\(['"]([^'"]+)['"]\)/);
+                                const src = (m && m[1]) ? m[1] : null;
+                                if (!src) return;
+                                // Build list from the column the link is in
+                                const column = link.closest('.skyflats-container, .runtimes-container');
+                                const anchors = Array.from(column.querySelectorAll('.file-name a'));
+                                const items = anchors.map(a => {
+                                    const oc = a.getAttribute('onclick') || '';
+                                    const mm = oc.match(/loadPlot\(['"]([^'"]+)['"]\)/);
+                                    const path = (mm && mm[1]) ? mm[1] : '#';
+                                    return { src: path, name: (a.textContent || '').trim() };
+                                }).filter(x => x.src && x.src !== '#');
+                                const idx = anchors.indexOf(link);
+                                openOverlay(Math.max(0, idx), items);
+                            });
+                        })();
                         return true;
                     }
                     // Collect and re-execute inline scripts
