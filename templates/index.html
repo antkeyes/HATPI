@@ -171,6 +171,42 @@
                         renderLcplotsStart(url, fragment);
                         return true;
                     }
+                    if (url.includes('/skyflats_runtimes')) {
+                        // Prune page title and pills/back-to-home when embedding
+                        const pageTitle = fragment.querySelector('.page-title');
+                        pageTitle && pageTitle.remove();
+                        const pills = fragment.querySelector('.pills-container');
+                        pills && pills.remove();
+                        // Use only the inner folder content container
+                        const container = fragment.querySelector('.folder-content-container');
+                        // Collect and re-execute inline scripts before detaching
+                        const scripts = Array.from(fragment.querySelectorAll('script'));
+                        scripts.forEach(s => s.parentNode && s.parentNode.removeChild(s));
+                        embedPanel.innerHTML = '';
+                        const shell = document.createElement('div');
+                        shell.className = 'skyflats-embed-shell';
+                        if (container) {
+                            shell.appendChild(container);
+                        } else {
+                            // Fallback to fragment content if specific container not found
+                            const div = document.createElement('div');
+                            div.innerHTML = fragment.innerHTML;
+                            shell.appendChild(div);
+                        }
+                        embedPanel.appendChild(shell);
+                        // Re-attach scripts so functions like loadPlot/openGalleryCustom work
+                        scripts.forEach(s => {
+                            const ns = document.createElement('script');
+                            if (s.src) {
+                                ns.src = s.src;
+                            } else {
+                                ns.textContent = s.textContent || '';
+                            }
+                            document.body.appendChild(ns);
+                            setTimeout(() => ns.remove(), 0);
+                        });
+                        return true;
+                    }
                     // Collect and re-execute inline scripts
                     const scripts = Array.from(fragment.querySelectorAll('script'));
                     scripts.forEach(s => s.parentNode && s.parentNode.removeChild(s));

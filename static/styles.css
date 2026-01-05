@@ -102,6 +102,24 @@ body.lcplots-page .content-wrapper {
     margin: 0 auto;
 }
 
+/* Embedded Skyflats & Runtimes layout (scoped to skyflats only) */
+.skyflats-embed-shell .folder-content-container {
+    display: block;           /* override global grid layout */
+    grid-template-columns: none;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.skyflats-embed-shell .dual-list-container {
+    padding: 0;
+    gap: 24px;
+}
+.skyflats-embed-shell .skyflats-container,
+.skyflats-embed-shell .runtimes-container {
+    width: auto;
+    flex: 1 1 0;
+}
+
 /* Full-screen overlay gallery for embedded Light Curve Plots */
 .lcplots-overlay {
     position: fixed;
